@@ -30,6 +30,18 @@ export interface FlightData {
   inbound: FlightSegment[];
 }
 
+export interface Hotel {
+  id: string;
+  name: string;
+  location: string;
+  bookingCode?: string;
+  image: string;
+  checkIn?: string;
+  checkOut?: string;
+  notes?: string;
+  createdAt?: any;
+}
+
 export interface ItineraryEvent {
   id?: string;
   date: string;

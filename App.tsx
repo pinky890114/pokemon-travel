@@ -9,12 +9,12 @@ import { ItineraryView } from './components/ItineraryView';
 import { BookingView } from './components/BookingView';
 import { LedgerView } from './components/LedgerView';
 import { MembersView } from './components/MembersView';
-import { WeatherModal, SettingsModal, EventModal, FlightModal } from './components/Modals';
+import { WeatherModal, SettingsModal, EventModal, FlightModal, HotelModal } from './components/Modals';
 
 import { 
-  TripSettings, ItineraryEvent, FlightData, Expense, FlightSegment 
+  TripSettings, ItineraryEvent, FlightData, Expense, FlightSegment, Hotel
 } from './types';
-import { POKEMON_THEMES, INITIAL_FLIGHT_DATA } from './constants';
+import { POKEMON_THEMES, INITIAL_FLIGHT_DATA, INITIAL_HOTELS } from './constants';
 import { getDateStrFromDay } from './utils';
 
 // Helper for unique IDs
@@ -36,18 +36,21 @@ const App: React.FC = () => {
   const [flightData, setFlightData] = useState<FlightData>(INITIAL_FLIGHT_DATA);
   const [events, setEvents] = useState<ItineraryEvent[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [hotels, setHotels] = useState<Hotel[]>(INITIAL_HOTELS);
 
   // Modals
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showWeatherModal, setShowWeatherModal] = useState(false);
   const [showEventModal, setShowEventModal] = useState(false);
   const [showFlightModal, setShowFlightModal] = useState(false);
+  const [showHotelModal, setShowHotelModal] = useState(false);
 
   // Editing State
   const [currentEvent, setCurrentEvent] = useState<ItineraryEvent | null>(null);
   const [isEditingEvent, setIsEditingEvent] = useState(false);
   const [editingFlightDirection, setEditingFlightDirection] = useState<'outbound' | 'inbound'>('outbound');
   const [generatingTransportId, setGeneratingTransportId] = useState<string | null>(null);
+  const [currentHotel, setCurrentHotel] = useState<Hotel | null>(null);
 
   const currentTheme = POKEMON_THEMES[(activeDay - 1) % POKEMON_THEMES.length];
 
@@ -63,6 +66,7 @@ const App: React.FC = () => {
           if (parsed.events) setEvents(parsed.events);
           if (parsed.expenses) setExpenses(parsed.expenses);
           if (parsed.totalDays) setTotalDays(parsed.totalDays);
+          if (parsed.hotels) setHotels(parsed.hotels);
         }
       } catch (e) {
         console.error("Failed to load data", e);
@@ -81,10 +85,11 @@ const App: React.FC = () => {
       flightData,
       events,
       expenses,
-      totalDays
+      totalDays,
+      hotels
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
-  }, [tripSettings, flightData, events, expenses, totalDays, loading]);
+  }, [tripSettings, flightData, events, expenses, totalDays, hotels, loading]);
 
   // Handlers
   const handleSaveSettings = (settings: TripSettings, days: number) => {
@@ -177,6 +182,38 @@ const App: React.FC = () => {
     setGeneratingTransportId(null);
   };
 
+  // Hotel Handlers
+  const handleOpenHotelModal = (hotel?: Hotel) => {
+    if (hotel) {
+      setCurrentHotel(hotel);
+    } else {
+      setCurrentHotel({ 
+        id: '', 
+        name: '', 
+        location: '', 
+        bookingCode: '', 
+        image: '' 
+      });
+    }
+    setShowHotelModal(true);
+  };
+
+  const handleSaveHotel = (hotel: Hotel) => {
+    if (!hotel.name) return;
+    if (hotel.id) {
+      setHotels(prev => prev.map(h => h.id === hotel.id ? hotel : h));
+    } else {
+      setHotels(prev => [...prev, { ...hotel, id: generateId(), createdAt: new Date().toISOString() }]);
+    }
+    setShowHotelModal(false);
+  };
+
+  const handleDeleteHotel = (id: string) => {
+    setHotels(prev => prev.filter(h => h.id !== id));
+    setShowHotelModal(false);
+  };
+
+
   return (
     <div className={`min-h-screen ${currentTheme.bgLight} font-['DotGothic16'] text-gray-700 max-w-md mx-auto shadow-2xl relative overflow-x-hidden transition-colors duration-300`}>
       {loading && activeTab === 'itinerary' && (
@@ -211,7 +248,9 @@ const App: React.FC = () => {
           <BookingView 
             currentTheme={currentTheme}
             flightData={flightData}
+            hotels={hotels}
             onEditFlights={handleEditFlights}
+            onOpenHotelModal={handleOpenHotelModal}
           />
         )}
         {activeTab === 'ledger' && (
@@ -258,6 +297,16 @@ const App: React.FC = () => {
           currentTheme={currentTheme}
           onClose={() => setShowFlightModal(false)}
           onSave={handleSaveFlights}
+        />
+      )}
+
+      {showHotelModal && currentHotel && (
+        <HotelModal 
+          hotel={currentHotel} 
+          currentTheme={currentTheme}
+          onClose={() => setShowHotelModal(false)}
+          onSave={handleSaveHotel}
+          onDelete={handleDeleteHotel}
         />
       )}
     </div>

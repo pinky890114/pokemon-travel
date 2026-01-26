@@ -1,4 +1,4 @@
-import { FlightData, Member, Theme, WeatherInfo } from './types';
+import { FlightData, Hotel, Member, Theme, WeatherInfo } from './types';
 
 export const POKE_CARD_STYLE = "bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-xl";
 export const POKE_BTN_STYLE = "border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all rounded-xl";
@@ -87,3 +87,8 @@ export const INITIAL_FLIGHT_DATA: FlightData = {
     }
   ]
 };
+
+export const INITIAL_HOTELS: Hotel[] = [
+  { id: 'h1', name: 'Hotel Spinne', location: 'Grindelwald', bookingCode: 'AG-98322', image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=300', checkIn: '2026-02-20', checkOut: '2026-02-23' },
+  { id: 'h2', name: 'Backstage Hotel', location: 'Zermatt', bookingCode: 'BK-11029', image: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=300', checkIn: '2026-02-23', checkOut: '2026-02-25' }
+];

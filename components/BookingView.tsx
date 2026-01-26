@@ -1,17 +1,24 @@
 import React, { useState } from 'react';
-import { Plane, Home, QrCode, Edit3, ArrowDownCircle, Clock, Luggage, MapPin, Sun } from 'lucide-react';
-import { FlightData, Theme } from '../types';
+import { Plane, Home, QrCode, Edit3, ArrowDownCircle, Clock, Luggage, MapPin, Plus, StickyNote } from 'lucide-react';
+import { FlightData, Hotel, Theme } from '../types';
 import { POKE_CARD_STYLE, DIGITAL_FONT_STYLE } from '../constants';
 
 interface BookingViewProps {
   currentTheme: Theme;
   flightData: FlightData;
+  hotels?: Hotel[];
   onEditFlights: (direction: 'outbound' | 'inbound') => void;
+  onOpenHotelModal?: (hotel?: Hotel) => void;
 }
 
-export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightData, onEditFlights }) => {
+export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightData, hotels = [], onEditFlights, onOpenHotelModal }) => {
   const [bookingTab, setBookingTab] = useState<'flight' | 'hotel' | 'ticket'>('flight');
   const [flightDirection, setFlightDirection] = useState<'outbound' | 'inbound'>('outbound');
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return '--/--';
+    return dateStr.substring(5).replace('-', '/');
+  };
 
   return (
     <div className="px-6 space-y-6 pb-40 animate-in fade-in">
@@ -33,7 +40,7 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
              {(['outbound', 'inbound'] as const).map(dir => (
                <button key={dir} onClick={() => setFlightDirection(dir)} className={`px-4 py-1.5 text-xs font-bold rounded-lg border-2 ${flightDirection === dir ? 'bg-black text-white border-black shadow-[2px_2px_0px_#000]' : 'bg-white text-gray-500 border-gray-300'}`}>{dir === 'outbound' ? '去程' : '回程'}</button>
              ))}
-             <button onClick={() => onEditFlights(flightDirection)} className="px-4 py-1.5 text-xs font-bold rounded-lg border-2 bg-blue-100 text-blue-800 border-blue-300 shadow-[2px_2px_0px_#60a5fa]"><Edit3 size={12}/></button>
+             <button onClick={() => onEditFlights(flightDirection)} className="px-4 py-1.5 text-xs font-bold rounded-lg border-2 bg-[#FFF9C4] text-black border-black shadow-[2px_2px_0px_#000] active:translate-y-[1px] active:shadow-none transition-all"><Edit3 size={12}/></button>
            </div>
            
            <div className={`${POKE_CARD_STYLE} overflow-hidden`}>
@@ -44,10 +51,10 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
                  {flightData[flightDirection].map((segment, index) => (
                     <React.Fragment key={segment.id || index}>
                        {index > 0 && (
-                          <div className="relative h-14 bg-blue-50 border-y-2 border-dashed border-gray-300 flex items-center justify-center my-[-1px] z-10">
+                          <div className="relative h-14 bg-gray-200 border-y-2 border-dashed border-gray-400 flex items-center justify-center my-[-1px] z-10">
                               <div className="flex flex-col items-center px-4">
-                                <div className="text-[10px] font-black text-blue-800 flex items-center uppercase"><ArrowDownCircle size={12} className="mr-1"/> Transfer at {segment.from}</div>
-                                <div className={`text-xs font-black text-blue-600 ${DIGITAL_FONT_STYLE} flex items-center gap-1`}><Clock size={12}/> Layover {segment.layover}</div>
+                                <div className="text-[10px] font-black text-gray-600 flex items-center uppercase"><ArrowDownCircle size={12} className="mr-1"/> Transfer at {segment.from}</div>
+                                <div className={`text-xs font-black text-gray-800 ${DIGITAL_FONT_STYLE} flex items-center gap-1`}><Clock size={12}/> Layover {segment.layover}</div>
                               </div>
                           </div>
                        )}
@@ -63,7 +70,7 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
                                 <span>Flight: <span className="text-black font-black">{segment.flight}</span></span>
                              </div>
                              <div className="flex items-center text-black font-black uppercase tracking-tighter col-span-2">
-                                <Luggage size={12} className="mr-1 text-gray-400"/>Baggage: {segment.baggage}
+                                <Luggage size={12} className="mr-1 text-gray-400"/>Baggage: {segment.baggage} <span className="text-gray-400 mx-2">|</span> Carry-On: 7KG
                              </div>
                              <div className="flex justify-between col-span-2 border-t-2 border-gray-50 pt-1 mt-1 font-mono text-[9px] text-gray-400 uppercase">
                                 <span>GATE: {segment.gate}</span><span>SEAT: {segment.seat}</span><span>CLASS: {segment.class}</span>
@@ -79,19 +86,59 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
 
       {bookingTab === 'hotel' && (
         <div className="space-y-4">
-          {[
-            { name: 'Hotel Spinne', loc: 'Grindelwald', stars: 4, img: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=300' },
-            { name: 'Backstage Hotel', loc: 'Zermatt', stars: 4, img: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=300' }
-          ].map((h, i) => (
-             <div key={i} className={`${POKE_CARD_STYLE} flex overflow-hidden`}>
-                <img src={h.img} className="w-24 h-full object-cover border-r-2 border-black" alt="hotel" />
-                <div className="p-3 flex-1">
-                   <h4 className="font-black text-gray-800 leading-none">{h.name}</h4>
-                   <div className="text-[10px] font-bold text-gray-500 mt-1 flex items-center tracking-tighter"><MapPin size={10} className="mr-1"/>{h.loc}</div>
-                   <div className="mt-2 flex">{[...Array(h.stars)].map((_, j) => <Sun key={j} size={10} className="text-yellow-500 fill-yellow-500"/>)}</div>
+          <div className="flex justify-end">
+            <button onClick={() => onOpenHotelModal && onOpenHotelModal()} className="px-3 py-1.5 text-xs font-bold rounded-lg border-2 bg-[#FFF9C4] text-[#F57F17] border-black shadow-[2px_2px_0px_#000] active:translate-y-[1px] active:shadow-none transition-all flex items-center">
+              <Plus size={14} className="mr-1" /> 新增住宿
+            </button>
+          </div>
+          {hotels.map((h, i) => (
+             <button key={h.id} onClick={() => onOpenHotelModal && onOpenHotelModal(h)} className={`${POKE_CARD_STYLE} flex overflow-hidden w-full text-left active:scale-[0.98] transition-transform`}>
+                
+                {/* Date Strip on Far Left */}
+                <div className="w-16 bg-gray-100 border-r-2 border-black flex flex-col items-center justify-center p-2 flex-shrink-0">
+                   <div className="flex flex-col items-center">
+                      <span className="text-[9px] font-bold text-gray-500 leading-none mb-1">IN</span>
+                      <span className={`text-sm font-black text-gray-800 ${DIGITAL_FONT_STYLE}`}>{formatDate(h.checkIn)}</span>
+                   </div>
+                   <div className="w-full h-[2px] bg-gray-300 my-2 border-t border-dashed border-gray-400"></div>
+                   <div className="flex flex-col items-center">
+                      <span className="text-[9px] font-bold text-gray-500 leading-none mb-1">OUT</span>
+                      <span className={`text-sm font-black text-gray-800 ${DIGITAL_FONT_STYLE}`}>{formatDate(h.checkOut)}</span>
+                   </div>
                 </div>
-             </div>
+
+                <img src={h.image || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=300'} className="w-24 object-cover border-r-2 border-black" alt="hotel" />
+                
+                <div className="p-3 flex-1 flex flex-col justify-center">
+                   <h4 className="font-black text-gray-800 leading-tight text-lg mb-1">{h.name}</h4>
+                   <a 
+                     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(h.location)}`}
+                     target="_blank" 
+                     rel="noopener noreferrer"
+                     onClick={(e) => e.stopPropagation()}
+                     className="text-[10px] font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center tracking-tighter uppercase mb-2"
+                   >
+                     <MapPin size={10} className="mr-1"/>{h.location}
+                   </a>
+                   {h.bookingCode && (
+                     <div className="inline-flex items-center text-[10px] bg-gray-100 px-2 py-1 rounded border border-gray-300 font-mono font-bold text-black self-start mb-2">
+                        {h.bookingCode}
+                     </div>
+                   )}
+                   {h.notes && (
+                      <div className="text-[10px] text-gray-500 bg-yellow-50 p-2 rounded border border-dashed border-yellow-300 font-bold leading-tight flex items-start">
+                        <StickyNote size={10} className="mr-1 mt-0.5 flex-shrink-0 text-yellow-600"/>
+                        <span>{h.notes}</span>
+                      </div>
+                   )}
+                </div>
+             </button>
           ))}
+          {hotels.length === 0 && (
+            <div className={`${POKE_CARD_STYLE} p-8 text-center bg-gray-50 text-gray-400 font-bold`}>
+              尚未新增任何住宿...
+            </div>
+          )}
         </div>
       )}
     </div>
