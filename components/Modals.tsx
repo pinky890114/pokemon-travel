@@ -356,6 +356,7 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({ voucher, currentThem
            <select value={localVoucher.type} onChange={e => setLocalVoucher({...localVoucher, type: e.target.value as any})} className={`w-full p-2 font-black ${POKE_INPUT_STYLE}`}>
               <option value="transport">交通票券</option>
               <option value="attraction">景點門票</option>
+              <option value="restaurant">餐廳訂位</option>
               <option value="other">其他</option>
            </select>
            

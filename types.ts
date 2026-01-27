@@ -46,7 +46,7 @@ export interface Hotel {
 export interface Voucher {
   id: string;
   title: string;
-  type: 'transport' | 'attraction' | 'other';
+  type: 'transport' | 'attraction' | 'restaurant' | 'other';
   referenceNo: string;
   date?: string;
   notes?: string;

@@ -167,8 +167,13 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
                 <div className="p-3 flex-1">
                    <div className="flex justify-between items-start mb-2">
                       <div>
-                         <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded border border-black text-white mb-1 inline-block ${v.type === 'transport' ? 'bg-blue-500' : v.type === 'attraction' ? 'bg-red-500' : 'bg-gray-500'}`}>
-                           {v.type === 'transport' ? '交通' : v.type === 'attraction' ? '景點' : '其他'}
+                         <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded border border-black text-white mb-1 inline-block ${
+                           v.type === 'transport' ? 'bg-blue-500' : 
+                           v.type === 'attraction' ? 'bg-red-500' : 
+                           v.type === 'restaurant' ? 'bg-orange-500' : 
+                           'bg-gray-500'
+                         }`}>
+                           {v.type === 'transport' ? '交通' : v.type === 'attraction' ? '景點' : v.type === 'restaurant' ? '餐廳' : '其他'}
                          </span>
                          <h4 className="font-black text-gray-800 text-lg leading-none">{v.title}</h4>
                       </div>
