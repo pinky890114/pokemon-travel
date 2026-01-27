@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { X, Sun, Plus, Minus, Trash2, Upload, Ticket, QrCode, Check, Camera, Copy } from 'lucide-react';
 import { POKE_CARD_STYLE, POKE_INPUT_STYLE, POKE_BTN_STYLE, DIGITAL_FONT_STYLE, POKEMON_THEMES } from '../constants';
@@ -91,7 +92,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, totalDay
              <input type="text" value={localSettings.subtitle} onChange={e => setLocalSettings({...localSettings, subtitle: e.target.value})} className={`w-full p-2 bg-gray-50 font-black ${POKE_INPUT_STYLE}`} />
            </div>
            
-           {/* Changed to vertical stack (grid-cols-1) to prevent overlap on mobile */}
            <div className="grid grid-cols-1 gap-4">
               <div>
                 <label className="text-xs font-bold text-gray-500 mb-1 block uppercase">Start Date</label>
@@ -107,6 +107,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, totalDay
                 />
               </div>
            </div>
+           
            <button onClick={() => onSave(localSettings, localDays)} className={`w-full bg-[#8B5A2B] text-white py-3 font-black ${POKE_BTN_STYLE}`}>確定儲存</button>
         </div>
       </div>
