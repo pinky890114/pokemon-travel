@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Loader2, Plus, LogOut, Map, ArrowRight, Copy, Check, Users, RefreshCw, AlertTriangle } from 'lucide-react';
 
-import { generateTransportSuggestion } from './geminiService';
+import { generateTransportSuggestion } from './services/geminiService';
 import { createAdventureInDb, getUserAdventures, joinAdventureInDb, subscribeToAdventure, updateAdventureData } from './services/dbService';
 
 import { Header } from './components/Header';
