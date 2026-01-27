@@ -1,4 +1,19 @@
 
+export interface User {
+  id: string;
+  name: string;
+  avatar: string;
+}
+
+export interface AdventureMetadata {
+  id: string;
+  title: string;
+  coverImage: string;
+  startDate: string;
+  memberIds: string[]; // List of user IDs who are members
+  createdAt: string;
+}
+
 export interface TripSettings {
   title: string;
   subtitle: string;
@@ -79,11 +94,22 @@ export interface Expense {
   createdAt?: any;
 }
 
+export interface JournalEntry {
+  id: string;
+  date: string;
+  content: string;
+  image?: string;
+  authorId: string;
+  createdAt: string;
+}
+
 export interface Member {
   id: string;
   name: string;
   themeIdx: number;
   img: string;
+  level: number;
+  exp: number;
 }
 
 export interface WeatherInfo {
