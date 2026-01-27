@@ -1,7 +1,8 @@
-import React from 'react';
-import { X, Sun, Plus, Minus, Trash2, Upload, Ticket, QrCode } from 'lucide-react';
-import { POKE_CARD_STYLE, POKE_INPUT_STYLE, POKE_BTN_STYLE, DIGITAL_FONT_STYLE } from '../constants';
-import { TripSettings, ItineraryEvent, FlightSegment, Theme, Hotel, Voucher } from '../types';
+import React, { useState } from 'react';
+import { X, Sun, Plus, Minus, Trash2, Upload, Ticket, QrCode, Check, Camera, Copy } from 'lucide-react';
+import { POKE_CARD_STYLE, POKE_INPUT_STYLE, POKE_BTN_STYLE, DIGITAL_FONT_STYLE, POKEMON_THEMES } from '../constants';
+import { TripSettings, ItineraryEvent, FlightSegment, Theme, Hotel, Voucher, Member, JournalEntry } from '../types';
+import { getPokemonSprite, compressImage } from '../utils';
 
 // --- Weather Modal ---
 export const WeatherModal: React.FC<{ onClose: () => void }> = ({ onClose }) => (
@@ -30,13 +31,23 @@ export const WeatherModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
 interface SettingsModalProps {
   settings: TripSettings;
   totalDays: number;
+  adventureId?: string;
   onClose: () => void;
   onSave: (settings: TripSettings, days: number) => void;
 }
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, totalDays, onClose, onSave }) => {
+export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, totalDays, adventureId, onClose, onSave }) => {
   const [localSettings, setLocalSettings] = React.useState(settings);
   const [localDays, setLocalDays] = React.useState(totalDays);
+  const [copied, setCopied] = useState(false);
+
+  const copyId = () => {
+    if (adventureId) {
+        navigator.clipboard.writeText(adventureId);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-6 backdrop-blur-sm animate-in fade-in">
@@ -46,9 +57,29 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, totalDay
           <button onClick={onClose}><X size={20}/></button>
         </div>
         <div className="space-y-4">
+           
+           {/* Adventure ID Section */}
+           {adventureId && (
+               <div className="bg-yellow-50 border-2 border-dashed border-yellow-400 p-3 rounded-xl mb-4">
+                  <label className="text-[10px] font-bold text-yellow-700 mb-1 block uppercase">Invite Friends (Adventure ID)</label>
+                  <button 
+                    onClick={copyId}
+                    className="w-full flex items-center justify-between bg-white border border-yellow-500 rounded p-2 active:bg-yellow-100 transition-colors"
+                  >
+                     <span className="font-mono text-sm font-bold truncate mr-2 text-gray-700">{adventureId}</span>
+                     {copied ? <Check size={16} className="text-green-600"/> : <Copy size={16} className="text-yellow-600"/>}
+                  </button>
+                  <p className="text-[9px] text-yellow-600 mt-1 font-bold">複製此 ID 給朋友，在首頁點選「加入冒險」即可。</p>
+               </div>
+           )}
+
            <div>
              <label className="text-xs font-bold text-gray-500 mb-1 block uppercase">Title</label>
              <input type="text" value={localSettings.title} onChange={e => setLocalSettings({...localSettings, title: e.target.value})} className={`w-full p-2 bg-gray-50 font-black ${POKE_INPUT_STYLE}`} />
+           </div>
+           <div>
+             <label className="text-xs font-bold text-gray-500 mb-1 block uppercase">Subtitle</label>
+             <input type="text" value={localSettings.subtitle} onChange={e => setLocalSettings({...localSettings, subtitle: e.target.value})} className={`w-full p-2 bg-gray-50 font-black ${POKE_INPUT_STYLE}`} />
            </div>
            <div className="grid grid-cols-2 gap-4">
               <div>
@@ -190,14 +221,15 @@ export const HotelModal: React.FC<HotelModalProps> = ({ hotel, currentTheme, onC
   const [localHotel, setLocalHotel] = React.useState(hotel);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLocalHotel({ ...localHotel, image: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+      try {
+        const compressed = await compressImage(file);
+        setLocalHotel({ ...localHotel, image: compressed });
+      } catch (err) {
+        console.error("Image compression failed", err);
+      }
     }
   };
 
@@ -327,14 +359,15 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({ voucher, currentThem
   const [localVoucher, setLocalVoucher] = React.useState(voucher);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLocalVoucher({ ...localVoucher, qrImage: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+      try {
+        const compressed = await compressImage(file);
+        setLocalVoucher({ ...localVoucher, qrImage: compressed });
+      } catch (err) {
+        console.error("Image compression failed", err);
+      }
     }
   };
 
@@ -418,4 +451,213 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({ voucher, currentThem
       </div>
     </div>
   );
+};
+
+// --- Member Modal ---
+interface MemberModalProps {
+  member: Member;
+  currentTheme: Theme;
+  onClose: () => void;
+  onSave: (member: Member) => void;
+  onDelete: (id: string) => void;
+}
+
+export const MemberModal: React.FC<MemberModalProps> = ({ member, currentTheme, onClose, onSave, onDelete }) => {
+  const [localMember, setLocalMember] = React.useState(member);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const compressed = await compressImage(file, 200, 0.7); // Smaller size for avatars
+        setLocalMember({ ...localMember, img: compressed });
+      } catch (err) {
+        console.error("Image compression failed", err);
+      }
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-6 backdrop-blur-sm animate-in fade-in">
+      <div className={`${POKE_CARD_STYLE} w-full max-w-sm p-6 max-h-[85vh] overflow-y-auto`}>
+        <div className="flex justify-between items-center mb-6 border-b-2 border-black pb-2 font-black">
+          <h3 className="text-xl">夥伴資料</h3>
+          <button onClick={onClose}><X size={20}/></button>
+        </div>
+        <div className="space-y-6 pb-12">
+           {/* Avatar Section */}
+           <div className="flex flex-col items-center">
+             <div className="relative group w-24 h-24 mb-3">
+               <img src={localMember.img} className="w-full h-full rounded-full border-4 border-black object-cover bg-gray-100" alt="avatar" />
+               <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute bottom-0 right-0 bg-white border-2 border-black rounded-full p-1.5 shadow-md active:scale-90 transition-transform"
+               >
+                 <Upload size={14} />
+               </button>
+             </div>
+             <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" />
+             <input 
+               type="text" 
+               placeholder="訓練家名稱" 
+               value={localMember.name} 
+               onChange={e => setLocalMember({...localMember, name: e.target.value})} 
+               className={`w-full text-center p-2 font-black ${POKE_INPUT_STYLE}`} 
+             />
+           </div>
+
+           {/* Pokemon Theme Selection */}
+           <div>
+              <label className="text-xs font-bold text-gray-500 mb-2 block uppercase text-center">選擇搭檔寶可夢</label>
+              <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1">
+                 {POKEMON_THEMES.map((theme, idx) => (
+                    <button 
+                       key={theme.id}
+                       onClick={() => setLocalMember({...localMember, themeIdx: idx})}
+                       className={`aspect-square rounded-lg border-2 flex items-center justify-center transition-all relative ${localMember.themeIdx === idx ? 'border-black bg-gray-100 shadow-[2px_2px_0px_0px_#000]' : 'border-gray-200 bg-white hover:bg-gray-50'}`}
+                    >
+                       <img src={getPokemonSprite(theme.id)} className="w-10 h-10 object-contain" alt={theme.name} />
+                       {localMember.themeIdx === idx && (
+                          <div className="absolute top-0 right-0 bg-green-500 text-white rounded-bl-lg p-0.5 border-l border-b border-black">
+                             <Check size={8} strokeWidth={4}/>
+                          </div>
+                       )}
+                    </button>
+                 ))}
+              </div>
+              <div className="text-center mt-2">
+                 <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full border border-black ${POKEMON_THEMES[localMember.themeIdx]?.text || 'text-black'} ${POKEMON_THEMES[localMember.themeIdx]?.bgLight || 'bg-white'}`}>
+                    {POKEMON_THEMES[localMember.themeIdx]?.name || 'Unknown'}
+                 </span>
+              </div>
+           </div>
+
+           <div className="flex space-x-2 pt-2">
+              {localMember.id && (
+                <button onClick={() => onDelete(localMember.id)} className={`flex-1 bg-red-100 text-red-600 py-3 font-black ${POKE_BTN_STYLE} flex justify-center`}>
+                  <Trash2 size={16} />
+                </button>
+              )}
+              <button onClick={() => onSave(localMember)} className={`flex-[3] ${currentTheme.color} text-white py-3 font-black ${POKE_BTN_STYLE}`}>
+                確定儲存
+              </button>
+            </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- Journal Modal ---
+interface JournalModalProps {
+    members: Member[];
+    currentTheme: Theme;
+    onClose: () => void;
+    onSave: (entry: JournalEntry) => void;
+}
+
+export const JournalModal: React.FC<JournalModalProps> = ({ members, currentTheme, onClose, onSave }) => {
+    const [content, setContent] = React.useState('');
+    const [image, setImage] = React.useState('');
+    const [authorId, setAuthorId] = React.useState(members[0]?.id || '');
+    const [date, setDate] = React.useState(new Date().toISOString().split('T')[0]);
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            try {
+                const compressed = await compressImage(file);
+                setImage(compressed);
+            } catch (err) {
+                console.error("Image compression failed", err);
+            }
+        }
+    };
+
+    const handleSave = () => {
+        if (!content && !image) return;
+        onSave({
+            id: '', // Will be generated in App
+            content,
+            image,
+            authorId,
+            date,
+            createdAt: new Date().toISOString()
+        });
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-6 backdrop-blur-sm animate-in fade-in">
+            <div className={`${POKE_CARD_STYLE} w-full max-w-sm p-6 max-h-[85vh] overflow-y-auto`}>
+                <div className="flex justify-between items-center mb-6 border-b-2 border-black pb-2 font-black">
+                    <h3 className="text-xl">寫日記</h3>
+                    <button onClick={onClose}><X size={20}/></button>
+                </div>
+                <div className="space-y-4 pb-4">
+                    <div className="flex gap-2">
+                        <select 
+                            value={authorId} 
+                            onChange={e => setAuthorId(e.target.value)} 
+                            className={`flex-1 p-2 font-black ${POKE_INPUT_STYLE}`}
+                        >
+                            {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                        </select>
+                        <input 
+                            type="date" 
+                            value={date} 
+                            onChange={e => setDate(e.target.value)} 
+                            className={`flex-1 p-2 text-xs font-black ${POKE_INPUT_STYLE}`} 
+                        />
+                    </div>
+
+                    <textarea 
+                        placeholder="今天發生了什麼事？" 
+                        value={content} 
+                        onChange={e => setContent(e.target.value)} 
+                        className={`w-full p-2 h-32 font-bold resize-none ${POKE_INPUT_STYLE}`}
+                    ></textarea>
+
+                    {/* Image Upload */}
+                    <div>
+                        <div className="flex items-center space-x-2">
+                            <button 
+                                onClick={() => fileInputRef.current?.click()}
+                                className={`w-full py-3 font-bold text-xs border-2 border-black border-dashed bg-gray-50 rounded-lg hover:bg-gray-100 flex items-center justify-center active:bg-gray-200 transition-colors`}
+                            >
+                                <Camera size={16} className="mr-2" />
+                                {image ? '更換照片' : '上傳照片'}
+                            </button>
+                            <input 
+                                type="file" 
+                                ref={fileInputRef} 
+                                onChange={handleImageUpload} 
+                                className="hidden" 
+                                accept="image/*"
+                            />
+                        </div>
+                        {image && (
+                            <div className="mt-2 w-full aspect-video rounded-lg border-2 border-black overflow-hidden relative">
+                                <img src={image} alt="preview" className="w-full h-full object-cover" />
+                                <button 
+                                    onClick={() => setImage('')} 
+                                    className="absolute top-2 right-2 bg-white border-2 border-black rounded-full p-1 shadow-[1px_1px_0px_#000] active:translate-y-[1px] active:shadow-none"
+                                >
+                                    <X size={12}/>
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                    
+                    <div className="pt-2">
+                        <p className="text-center text-xs text-gray-400 font-bold mb-2">發布日記可獲得經驗值提升等級！</p>
+                        <button onClick={handleSave} className={`w-full ${currentTheme.color} text-white py-3 font-black ${POKE_BTN_STYLE}`}>
+                            發布日記
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 };

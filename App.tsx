@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2, Plus, LogOut, Map, ArrowRight, Copy, Check, Users } from 'lucide-react';
 
-import { generateTransportSuggestion } from './services/geminiService';
+import { generateTransportSuggestion } from './geminiService';
 
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
@@ -9,7 +9,7 @@ import { ItineraryView } from './components/ItineraryView';
 import { BookingView } from './components/BookingView';
 import { LedgerView } from './components/LedgerView';
 import { MembersView } from './components/MembersView';
-import { JournalView } from './components/JournalView';
+import { JournalSection } from './components/JournalSection';
 import { WeatherModal, SettingsModal, EventModal, FlightModal, HotelModal, VoucherModal, QRModal, MemberModal, JournalModal } from './components/Modals';
 
 import { 
@@ -29,12 +29,10 @@ const LoginScreen: React.FC<{ onLogin: (user: User) => void }> = ({ onLogin }) =
     if (!name.trim()) return;
     
     // Generate a safe ID even for non-Latin characters (e.g. Chinese)
-    // btoa alone fails on unicode strings.
     let userId;
     try {
         userId = btoa(encodeURIComponent(name));
     } catch (e) {
-        // Fallback if something goes wrong
         userId = 'user_' + Date.now();
     }
 
@@ -139,7 +137,6 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
   const handleJoin = () => {
       if (!joinId.trim()) return;
 
-      // 1. Check if ID exists in metadata list
       const allAdventures: AdventureMetadata[] = JSON.parse(localStorage.getItem('poke_adventures') || '[]');
       const targetAdvIndex = allAdventures.findIndex(a => a.id === joinId);
 
@@ -148,7 +145,6 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
           return;
       }
 
-      // 2. Check if already a member
       if (allAdventures[targetAdvIndex].memberIds.includes(user.id)) {
           alert("你已經是這個冒險的成員了！");
           setMode('view');
@@ -156,12 +152,10 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
           return;
       }
 
-      // 3. Add to metadata memberIds
       allAdventures[targetAdvIndex].memberIds.push(user.id);
       localStorage.setItem('poke_adventures', JSON.stringify(allAdventures));
       setAdventures(allAdventures);
 
-      // 4. Update the actual adventure data (poke_adv_{id}) to include new member
       const advDataKey = `poke_adv_${joinId}`;
       const advData = localStorage.getItem(advDataKey);
       if (advData) {
@@ -170,7 +164,7 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
               parsedData.members.push({
                   id: user.id,
                   name: user.name,
-                  themeIdx: Math.floor(Math.random() * 7), // Random starter
+                  themeIdx: Math.floor(Math.random() * 7),
                   img: user.avatar,
                   level: 1,
                   exp: 0
@@ -191,7 +185,6 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
       setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Filter adventures where the user is a member
   const myAdventures = adventures.filter(a => a.memberIds.includes(user.id));
 
   return (
@@ -302,7 +295,7 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
   );
 };
 
-// --- Main Adventure Board Component ---
+// --- Adventure Board ---
 interface AdventureBoardProps {
   user: User;
   adventureId: string;
@@ -374,8 +367,6 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
              setMembers(loadedMembers);
           }
           if (parsed.journalEntries) setJournalEntries(parsed.journalEntries);
-        } else {
-            // First time loading this ID, maybe use initial props passed down or empty
         }
       } catch (e) {
         console.error("Failed to load data", e);
@@ -409,7 +400,7 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
     }
   }, [tripSettings, flightData, events, expenses, totalDays, hotels, vouchers, members, journalEntries, loading, adventureId]);
 
-  // Sync Member List with Adventure Metadata (for lobby list)
+  // Sync Member List
   useEffect(() => {
       if (loading) return;
       const savedAdvs = localStorage.getItem('poke_adventures');
@@ -418,7 +409,6 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
           const currentAdv = advs.find(a => a.id === adventureId);
           if (currentAdv) {
               const currentMemberIds = members.map(m => m.id);
-              // Only update if different
               if (JSON.stringify(currentAdv.memberIds) !== JSON.stringify(currentMemberIds)) {
                  currentAdv.memberIds = currentMemberIds;
                  localStorage.setItem('poke_adventures', JSON.stringify(advs));
@@ -427,14 +417,11 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
       }
   }, [members, adventureId, loading]);
 
-
-  // Handlers (Simplified for brevity, mostly same as before)
   const handleSaveSettings = (settings: TripSettings, days: number) => {
     setTripSettings(settings);
     setTotalDays(days);
     setShowSettingsModal(false);
     
-    // Also update metadata title
     const savedAdvs = localStorage.getItem('poke_adventures');
     if (savedAdvs) {
         const advs: AdventureMetadata[] = JSON.parse(savedAdvs);
@@ -446,7 +433,6 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
     }
   };
 
-  // ... (Keep existing handlers logic: handleEditFlights, handleSaveFlights, etc.)
   const handleEditFlights = (direction: 'outbound' | 'inbound') => { setEditingFlightDirection(direction); setShowFlightModal(true); };
   const handleSaveFlights = (newSegments: FlightSegment[]) => { setFlightData(prev => ({ ...prev, [editingFlightDirection]: newSegments })); setShowFlightModal(false); };
   const handleOpenAddEvent = (existingEvent?: ItineraryEvent) => {
@@ -516,7 +502,7 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
           <LedgerView currentTheme={currentTheme} expenses={expenses} members={members} onAddExpense={handleAddExpense} />
         )}
         {activeTab === 'journal' && (
-            <JournalView entries={journalEntries} members={members} onAddEntry={() => setShowJournalModal(true)} onDeleteEntry={handleDeleteJournalEntry} />
+            <JournalSection entries={journalEntries} members={members} onAddEntry={() => setShowJournalModal(true)} onDeleteEntry={handleDeleteJournalEntry} />
         )}
         {activeTab === 'members' && (
            <MembersView members={members} onMemberClick={handleOpenMemberModal} />
@@ -539,13 +525,11 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
   );
 };
 
-
-// --- Main App Controller ---
+// --- App Root ---
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [currentAdventureId, setCurrentAdventureId] = useState<string | null>(null);
 
-  // Check for saved user session on load
   useEffect(() => {
     const savedUser = localStorage.getItem('poke_user_session');
     if (savedUser) {

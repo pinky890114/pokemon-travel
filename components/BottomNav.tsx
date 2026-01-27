@@ -1,5 +1,5 @@
 import React from 'react';
-import { Gamepad2, Briefcase, Wallet, Users } from 'lucide-react';
+import { Gamepad2, Briefcase, Wallet, Users, BookOpen } from 'lucide-react';
 import { Theme } from '../types';
 
 interface BottomNavProps {
@@ -13,6 +13,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, c
     { id: 'itinerary', label: '冒險', icon: Gamepad2 },
     { id: 'booking', label: '背包', icon: Briefcase },
     { id: 'ledger', label: '商店', icon: Wallet },
+    { id: 'journal', label: '日誌', icon: BookOpen },
     { id: 'members', label: '隊伍', icon: Users },
   ];
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { MapPin, ArrowUp, ArrowDown, Plus, Minus, Trash2, StickyNote, X, Train, Car, Bus, Loader2, Wand2 } from 'lucide-react';
 import { ItineraryEvent, TripSettings, Theme } from '../types';
 import { getDayInfo, getPokemonSprite, getCityWeather, getDateStrFromDay } from '../utils';
@@ -24,6 +24,35 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
 }) => {
   const dayEvents = events.filter(e => e.date === getDateStrFromDay(activeDay, tripSettings.startDate));
   const cityInfo = getCityWeather(activeDay, dayEvents);
+  
+  // Drag to scroll logic
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [isDown, setIsDown] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!scrollRef.current) return;
+    setIsDown(true);
+    setStartX(e.pageX - scrollRef.current.offsetLeft);
+    setScrollLeft(scrollRef.current.scrollLeft);
+  };
+
+  const handleMouseLeave = () => {
+    setIsDown(false);
+  };
+
+  const handleMouseUp = () => {
+    setIsDown(false);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDown || !scrollRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    const walk = (x - startX) * 2; // Scroll-fast multiplier
+    scrollRef.current.scrollLeft = scrollLeft - walk;
+  };
 
   const handleUpdateDays = (newDays: number) => {
     if (newDays < 1) return;
@@ -34,14 +63,21 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
   return (
     <div className="space-y-4 pb-40 animate-in fade-in">
       {/* Day Selector */}
-      <div className="flex space-x-2 overflow-x-auto px-6 py-2 no-scrollbar items-center">
+      <div 
+        ref={scrollRef}
+        className="flex space-x-2 overflow-x-auto px-6 py-2 no-scrollbar items-center cursor-grab active:cursor-grabbing select-none"
+        onMouseDown={handleMouseDown}
+        onMouseLeave={handleMouseLeave}
+        onMouseUp={handleMouseUp}
+        onMouseMove={handleMouseMove}
+      >
         {Array.from({ length: totalDays }, (_, i) => i + 1).map(day => {
           const info = getDayInfo(day, tripSettings.startDate);
           const theme = POKEMON_THEMES[(day - 1) % POKEMON_THEMES.length];
           return (
             <button 
               key={day} 
-              onClick={() => setActiveDay(day)} 
+              onClick={() => !isDown && setActiveDay(day)} // Prevent click when dragging
               className={`flex-shrink-0 w-16 py-2 rounded-xl border-2 border-black flex flex-col items-center transition-all ${activeDay === day ? `${theme.color} text-white shadow-[2px_2px_0px_0px_#000] -translate-y-1` : 'bg-white text-gray-500 shadow-[2px_2px_0px_#ccc]'}`}
             >
               <span className="text-[10px] font-bold">Day {day}</span>
