@@ -122,6 +122,8 @@ export interface WeatherInfo {
   type: string;
   sunrise: string;
   sunset: string;
+  lat?: number;
+  lng?: number;
 }
 
 export interface Theme {

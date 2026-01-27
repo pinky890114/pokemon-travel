@@ -99,7 +99,7 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
                    </span>
                 </div>
 
-                <img src={h.image || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=300'} className="w-24 object-cover border-r-2 border-black" alt="hotel" />
+                {/* Image Removed for better mobile visibility */}
                 
                 <div className="p-3 flex-1 flex flex-col justify-center min-w-0">
                    <h4 className="font-black text-gray-800 leading-tight text-lg mb-1 truncate">{h.name}</h4>

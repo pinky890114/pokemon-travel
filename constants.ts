@@ -1,4 +1,5 @@
 
+
 import { FlightData, Hotel, Member, Theme, WeatherInfo, Voucher } from './types';
 
 export const POKE_CARD_STYLE = "bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-xl";
@@ -7,14 +8,14 @@ export const POKE_INPUT_STYLE = "font-['DotGothic16'] border-2 border-black shad
 export const DIGITAL_FONT_STYLE = "font-['VT323'] text-lg tracking-wider";
 
 export const CITY_WEATHER_DB: Record<string, WeatherInfo> = {
-  "ZURICH": { name: "ZURICH", temp: 5, minTemp: -2, maxTemp: 8, condition: "cloudy", icon: "☁️", type: "city", sunrise: "07:25", sunset: "17:45" },
-  "LUZERN": { name: "LUZERN", temp: 4, minTemp: -1, maxTemp: 7, condition: "rain", icon: "🌧️", type: "city", sunrise: "07:28", sunset: "17:48" }, 
-  "INTERLAKEN": { name: "INTERLAKEN", temp: 2, minTemp: -5, maxTemp: 5, condition: "snow", icon: "❄️", type: "mountain", sunrise: "07:30", sunset: "17:50" },
-  "ZERMATT": { name: "ZERMATT", temp: -3, minTemp: -10, maxTemp: 2, condition: "snow", icon: "🏔️", type: "mountain", sunrise: "07:28", sunset: "17:52" },
-  "MILAN": { name: "MILAN", temp: 12, minTemp: 5, maxTemp: 15, condition: "sunny", icon: "☀️", type: "city", sunrise: "07:10", sunset: "18:05" },
-  "VENICE": { name: "VENICE", temp: 13, minTemp: 8, maxTemp: 16, condition: "rain", icon: "🌧️", type: "water", sunrise: "06:55", sunset: "18:00" },
-  "FLORENCE": { name: "FLORENCE", temp: 15, minTemp: 9, maxTemp: 19, condition: "sunny", icon: "☀️", type: "city", sunrise: "06:50", sunset: "18:10" },
-  "ROME": { name: "ROME", temp: 16, minTemp: 10, maxTemp: 20, condition: "sunny", icon: "☀️", type: "city", sunrise: "06:45", sunset: "18:15" },
+  "ZURICH": { name: "ZURICH", temp: 5, minTemp: -2, maxTemp: 8, condition: "cloudy", icon: "☁️", type: "city", sunrise: "07:25", sunset: "17:45", lat: 47.3769, lng: 8.5417 },
+  "LUZERN": { name: "LUZERN", temp: 4, minTemp: -1, maxTemp: 7, condition: "rain", icon: "🌧️", type: "city", sunrise: "07:28", sunset: "17:48", lat: 47.0502, lng: 8.3093 }, 
+  "INTERLAKEN": { name: "INTERLAKEN", temp: 2, minTemp: -5, maxTemp: 5, condition: "snow", icon: "❄️", type: "mountain", sunrise: "07:30", sunset: "17:50", lat: 46.6863, lng: 7.8632 },
+  "ZERMATT": { name: "ZERMATT", temp: -3, minTemp: -10, maxTemp: 2, condition: "snow", icon: "🏔️", type: "mountain", sunrise: "07:28", sunset: "17:52", lat: 46.0207, lng: 7.7491 },
+  "MILAN": { name: "MILAN", temp: 12, minTemp: 5, maxTemp: 15, condition: "sunny", icon: "☀️", type: "city", sunrise: "07:10", sunset: "18:05", lat: 45.4642, lng: 9.1900 },
+  "VENICE": { name: "VENICE", temp: 13, minTemp: 8, maxTemp: 16, condition: "rain", icon: "🌧️", type: "water", sunrise: "06:55", sunset: "18:00", lat: 45.4408, lng: 12.3155 },
+  "FLORENCE": { name: "FLORENCE", temp: 15, minTemp: 9, maxTemp: 19, condition: "sunny", icon: "☀️", type: "city", sunrise: "06:50", sunset: "18:10", lat: 43.7696, lng: 11.2558 },
+  "ROME": { name: "ROME", temp: 16, minTemp: 10, maxTemp: 20, condition: "sunny", icon: "☀️", type: "city", sunrise: "06:45", sunset: "18:15", lat: 41.9028, lng: 12.4964 },
 };
 
 export const CITY_KEYWORDS = [

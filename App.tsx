@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Loader2, Plus, LogOut, Map, ArrowRight, Copy, Check, Users } from 'lucide-react';
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { Loader2, Plus, LogOut, Map, ArrowRight, Copy, Check, Users, RefreshCw, AlertTriangle } from 'lucide-react';
 
 import { generateTransportSuggestion } from './geminiService';
+import { createAdventureInDb, getUserAdventures, joinAdventureInDb, subscribeToAdventure, updateAdventureData } from './services/dbService';
 
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
@@ -16,7 +18,7 @@ import {
   TripSettings, ItineraryEvent, FlightData, Expense, FlightSegment, Hotel, Voucher, Member, JournalEntry, User, AdventureMetadata
 } from './types';
 import { POKEMON_THEMES, INITIAL_FLIGHT_DATA, INITIAL_HOTELS, INITIAL_VOUCHERS, INITIAL_MEMBERS, POKE_CARD_STYLE, POKE_INPUT_STYLE, POKE_BTN_STYLE, DIGITAL_FONT_STYLE } from './constants';
-import { getDateStrFromDay, calculateLevelFromExp } from './utils';
+import { getDateStrFromDay, calculateLevelFromExp, getCityWeather } from './utils';
 
 // Helper for unique IDs
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -28,7 +30,6 @@ const LoginScreen: React.FC<{ onLogin: (user: User) => void }> = ({ onLogin }) =
   const handleLogin = () => {
     if (!name.trim()) return;
     
-    // Generate a safe ID even for non-Latin characters (e.g. Chinese)
     let userId;
     try {
         userId = btoa(encodeURIComponent(name));
@@ -86,17 +87,35 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
   const [joinId, setJoinId] = useState('');
   const [mode, setMode] = useState<'view' | 'create' | 'join'>('view');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [dbError, setDbError] = useState<string | null>(null);
+
+  // Fetch adventures from Firebase
+  const loadAdventures = async () => {
+      setIsLoading(true);
+      setDbError(null);
+      try {
+        const list = await getUserAdventures(user.id);
+        setAdventures(list);
+      } catch (e: any) {
+        console.error("DB Load Error", e);
+        let msg = "無法連接資料庫。";
+        if (e.code === 'permission-denied') msg += " (權限不足)";
+        if (e.code === 'unavailable') msg += " (網路問題或服務離線)";
+        setDbError(msg + " 請檢查 .env 設定或 Firebase 專案是否建立正確 (US-Central)。");
+      } finally {
+        setIsLoading(false);
+      }
+  };
 
   useEffect(() => {
-    // Load adventures list
-    const saved = localStorage.getItem('poke_adventures');
-    if (saved) {
-      setAdventures(JSON.parse(saved));
-    }
-  }, []);
+    loadAdventures();
+  }, [user.id]);
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!newTitle.trim()) return;
+    setIsLoading(true);
+    setDbError(null);
     
     const newAdv: AdventureMetadata = {
       id: generateId(),
@@ -107,11 +126,7 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
       createdAt: new Date().toISOString()
     };
 
-    const updatedList = [newAdv, ...adventures];
-    setAdventures(updatedList);
-    localStorage.setItem('poke_adventures', JSON.stringify(updatedList));
-    
-    // Initialize default data for this adventure
+    // Initialize default data
     const initialData = {
       tripSettings: { title: newTitle, subtitle: 'New Adventure', startDate: newAdv.startDate },
       totalDays: 5,
@@ -125,57 +140,43 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
       }],
       events: [],
       expenses: [],
-      journalEntries: []
+      journalEntries: [],
+      hotels: [],
+      vouchers: [],
+      flightData: INITIAL_FLIGHT_DATA
     };
-    localStorage.setItem(`poke_adv_${newAdv.id}`, JSON.stringify(initialData));
-    
-    setMode('view');
-    setNewTitle('');
-    onSelectAdventure(newAdv.id);
+
+    try {
+        const success = await createAdventureInDb(newAdv, initialData);
+        if (success) {
+            await loadAdventures(); // Refresh list
+            setMode('view');
+            setNewTitle('');
+            onSelectAdventure(newAdv.id);
+        }
+    } catch (e) {
+        setDbError("建立失敗：請確認 Firebase 資料庫已建立。");
+    } finally {
+        setIsLoading(false);
+    }
   };
 
-  const handleJoin = () => {
-      if (!joinId.trim()) return;
+  const handleJoin = async () => {
+      const cleanId = joinId.trim();
+      if (!cleanId) return;
+      setIsLoading(true);
+      setDbError(null);
 
-      const allAdventures: AdventureMetadata[] = JSON.parse(localStorage.getItem('poke_adventures') || '[]');
-      const targetAdvIndex = allAdventures.findIndex(a => a.id === joinId);
-
-      if (targetAdvIndex === -1) {
-          alert("找不到此冒險 ID，請確認代碼是否正確。");
-          return;
-      }
-
-      if (allAdventures[targetAdvIndex].memberIds.includes(user.id)) {
-          alert("你已經是這個冒險的成員了！");
+      try {
+          await joinAdventureInDb(cleanId, user);
+          await loadAdventures();
           setMode('view');
           setJoinId('');
-          return;
+          alert("成功加入冒險！");
+      } catch (error) {
+          alert("加入失敗：找不到此 ID 或資料庫連接錯誤");
       }
-
-      allAdventures[targetAdvIndex].memberIds.push(user.id);
-      localStorage.setItem('poke_adventures', JSON.stringify(allAdventures));
-      setAdventures(allAdventures);
-
-      const advDataKey = `poke_adv_${joinId}`;
-      const advData = localStorage.getItem(advDataKey);
-      if (advData) {
-          const parsedData = JSON.parse(advData);
-          if (parsedData.members) {
-              parsedData.members.push({
-                  id: user.id,
-                  name: user.name,
-                  themeIdx: Math.floor(Math.random() * 7),
-                  img: user.avatar,
-                  level: 1,
-                  exp: 0
-              });
-              localStorage.setItem(advDataKey, JSON.stringify(parsedData));
-          }
-      }
-
-      alert("成功加入冒險！");
-      setMode('view');
-      setJoinId('');
+      setIsLoading(false);
   };
 
   const copyToClipboard = (text: string, e: React.MouseEvent) => {
@@ -184,8 +185,6 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
       setCopiedId(text);
       setTimeout(() => setCopiedId(null), 2000);
   };
-
-  const myAdventures = adventures.filter(a => a.memberIds.includes(user.id));
 
   return (
     <div className="min-h-screen bg-[#f3f4f6] font-['DotGothic16'] pb-20">
@@ -204,8 +203,19 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
          </div>
 
          <div className="mb-6">
-            <h3 className="text-lg font-black mb-4 flex items-center"><Map size={20} className="mr-2"/>我的冒險</h3>
+            <h3 className="text-lg font-black mb-4 flex items-center justify-between">
+                <div className="flex items-center"><Map size={20} className="mr-2"/>我的冒險</div>
+                <button onClick={loadAdventures} disabled={isLoading} className="text-gray-400 hover:text-black active:rotate-180 transition-all"><RefreshCw size={16}/></button>
+            </h3>
             
+            {/* Error Banner */}
+            {dbError && (
+                <div className="mb-4 bg-red-50 border-2 border-red-500 rounded-xl p-3 flex items-start text-red-700 animate-in slide-in-from-top-2">
+                    <AlertTriangle size={20} className="mr-2 flex-shrink-0 mt-0.5" />
+                    <div className="text-xs font-bold leading-tight break-all">{dbError}</div>
+                </div>
+            )}
+
             {mode === 'create' ? (
                <div className={`${POKE_CARD_STYLE} p-4 animate-in fade-in`}>
                   <h4 className="font-bold text-sm mb-2">新的旅程名稱</h4>
@@ -218,7 +228,9 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
                   />
                   <div className="flex space-x-2">
                      <button onClick={() => setMode('view')} className="flex-1 py-2 text-xs font-bold text-gray-500">取消</button>
-                     <button onClick={handleCreate} className={`flex-1 py-2 text-xs font-bold bg-[#3B4CCA] text-white rounded-lg border-2 border-black shadow-[2px_2px_0px_#000]`}>建立</button>
+                     <button onClick={handleCreate} disabled={isLoading} className={`flex-1 py-2 text-xs font-bold bg-[#3B4CCA] text-white rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] flex justify-center items-center`}>
+                        {isLoading ? <Loader2 className="animate-spin" size={14}/> : '建立'}
+                     </button>
                   </div>
                </div>
             ) : mode === 'join' ? (
@@ -233,7 +245,9 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
                   />
                   <div className="flex space-x-2">
                      <button onClick={() => setMode('view')} className="flex-1 py-2 text-xs font-bold text-gray-500">取消</button>
-                     <button onClick={handleJoin} className={`flex-1 py-2 text-xs font-bold bg-green-600 text-white rounded-lg border-2 border-black shadow-[2px_2px_0px_#000]`}>加入</button>
+                     <button onClick={handleJoin} disabled={isLoading} className={`flex-1 py-2 text-xs font-bold bg-green-600 text-white rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] flex justify-center items-center`}>
+                        {isLoading ? <Loader2 className="animate-spin" size={14}/> : '加入'}
+                     </button>
                   </div>
                </div>
             ) : (
@@ -251,12 +265,13 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
          </div>
 
          <div className="space-y-4">
-            {myAdventures.length === 0 && mode === 'view' && (
+            {isLoading && !dbError && adventures.length === 0 && <div className="text-center p-4"><Loader2 className="animate-spin mx-auto text-gray-400"/></div>}
+            {!isLoading && !dbError && adventures.length === 0 && mode === 'view' && (
                <div className="text-center text-gray-400 text-sm mt-10">
                   還沒有任何冒險記錄...
                </div>
             )}
-            {myAdventures.map(adv => (
+            {adventures.map(adv => (
                <div 
                  key={adv.id} 
                  className={`${POKE_CARD_STYLE} w-full p-0 overflow-hidden text-left group transition-transform relative`}
@@ -308,8 +323,6 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
   const [totalDays, setTotalDays] = useState(5);
   const [loading, setLoading] = useState(true);
 
-  const STORAGE_KEY = `poke_adv_${adventureId}`;
-
   // Data State
   const [tripSettings, setTripSettings] = useState<TripSettings>({ title: '', subtitle: '', startDate: '' });
   const [flightData, setFlightData] = useState<FlightData>(INITIAL_FLIGHT_DATA);
@@ -342,141 +355,191 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
   const [currentMember, setCurrentMember] = useState<Member | null>(null);
 
   const currentTheme = POKEMON_THEMES[(activeDay - 1) % POKEMON_THEMES.length];
+  const currentDayEvents = events.filter(e => e.date === getDateStrFromDay(activeDay, tripSettings.startDate));
+  const currentWeather = getCityWeather(activeDay, currentDayEvents);
 
-  // Initialize Data
+  // Real-time Subscription to Firebase
   useEffect(() => {
-    const loadData = () => {
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed.tripSettings) setTripSettings(parsed.tripSettings);
-          if (parsed.flightData) setFlightData(parsed.flightData);
-          if (parsed.events) setEvents(parsed.events);
-          if (parsed.expenses) setExpenses(parsed.expenses);
-          if (parsed.totalDays) setTotalDays(parsed.totalDays);
-          if (parsed.hotels) setHotels(parsed.hotels);
-          if (parsed.vouchers) setVouchers(parsed.vouchers);
-          
-          if (parsed.members) {
-             const loadedMembers = parsed.members.map((m: any) => ({
-                 ...m,
-                 level: m.level || 1,
-                 exp: m.exp !== undefined ? m.exp : (m.level * (m.level - 1)) / 2
-             }));
-             setMembers(loadedMembers);
-          }
-          if (parsed.journalEntries) setJournalEntries(parsed.journalEntries);
-        }
-      } catch (e) {
-        console.error("Failed to load data", e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
+      setLoading(true);
+      const unsubscribe = subscribeToAdventure(adventureId, (data) => {
+          if (!data) return;
+          if (data.tripSettings) setTripSettings(data.tripSettings);
+          if (data.flightData) setFlightData(data.flightData);
+          if (data.events) setEvents(data.events);
+          if (data.expenses) setExpenses(data.expenses);
+          if (data.totalDays) setTotalDays(data.totalDays);
+          if (data.hotels) setHotels(data.hotels);
+          if (data.vouchers) setVouchers(data.vouchers);
+          if (data.members) setMembers(data.members);
+          if (data.journalEntries) setJournalEntries(data.journalEntries);
+          setLoading(false);
+      });
+      return () => unsubscribe();
   }, [adventureId]);
 
-  // Save Data
-  useEffect(() => {
-    if (loading) return; 
-    const dataToSave = {
-      tripSettings,
-      flightData,
-      events,
-      expenses,
-      totalDays,
-      hotels,
-      vouchers,
-      members,
-      journalEntries
-    };
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
-    } catch (e) {
-      if (e instanceof DOMException && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
-         alert("儲存空間已滿！");
-      }
-    }
-  }, [tripSettings, flightData, events, expenses, totalDays, hotels, vouchers, members, journalEntries, loading, adventureId]);
+  // Helper to save current state to DB
+  // NOTE: In a more complex app, we would save only partial updates. 
+  // For simplicity here, we save the whole state blob when a major action completes.
+  const saveToDb = async (overrides: Partial<any> = {}) => {
+      const dataToSave = {
+          tripSettings,
+          flightData,
+          events,
+          expenses,
+          totalDays,
+          hotels,
+          vouchers,
+          members,
+          journalEntries,
+          ...overrides // Allow overriding state that hasn't updated yet in the closure
+      };
+      await updateAdventureData(adventureId, dataToSave);
+  };
 
-  // Sync Member List
-  useEffect(() => {
-      if (loading) return;
-      const savedAdvs = localStorage.getItem('poke_adventures');
-      if (savedAdvs) {
-          const advs: AdventureMetadata[] = JSON.parse(savedAdvs);
-          const currentAdv = advs.find(a => a.id === adventureId);
-          if (currentAdv) {
-              const currentMemberIds = members.map(m => m.id);
-              if (JSON.stringify(currentAdv.memberIds) !== JSON.stringify(currentMemberIds)) {
-                 currentAdv.memberIds = currentMemberIds;
-                 localStorage.setItem('poke_adventures', JSON.stringify(advs));
-              }
-          }
-      }
-  }, [members, adventureId, loading]);
-
-  const handleSaveSettings = (settings: TripSettings, days: number) => {
+  const handleSaveSettings = async (settings: TripSettings, days: number) => {
     setTripSettings(settings);
     setTotalDays(days);
     setShowSettingsModal(false);
-    
-    const savedAdvs = localStorage.getItem('poke_adventures');
-    if (savedAdvs) {
-        const advs: AdventureMetadata[] = JSON.parse(savedAdvs);
-        const currentAdv = advs.find(a => a.id === adventureId);
-        if (currentAdv) {
-            currentAdv.title = settings.title;
-            localStorage.setItem('poke_adventures', JSON.stringify(advs));
-        }
-    }
+    await saveToDb({ tripSettings: settings, totalDays: days });
   };
 
   const handleEditFlights = (direction: 'outbound' | 'inbound') => { setEditingFlightDirection(direction); setShowFlightModal(true); };
-  const handleSaveFlights = (newSegments: FlightSegment[]) => { setFlightData(prev => ({ ...prev, [editingFlightDirection]: newSegments })); setShowFlightModal(false); };
+  const handleSaveFlights = async (newSegments: FlightSegment[]) => { 
+      const newData = { ...flightData, [editingFlightDirection]: newSegments };
+      setFlightData(newData); 
+      setShowFlightModal(false); 
+      await saveToDb({ flightData: newData });
+  };
+  
   const handleOpenAddEvent = (existingEvent?: ItineraryEvent) => {
       if (existingEvent) { setCurrentEvent(existingEvent); setIsEditingEvent(true); } 
       else { setCurrentEvent({ date: getDateStrFromDay(activeDay, tripSettings.startDate), time: '09:00', title: '', location: '', type: 'event', transportMode: 'walk', notes: '' }); setIsEditingEvent(false); }
       setShowEventModal(true);
   };
-  const handleSaveEvent = (event: ItineraryEvent) => {
+  const handleSaveEvent = async (event: ItineraryEvent) => {
     if (event.type === 'event' && !event.title) return;
-    if (isEditingEvent && event.id) { setEvents(prev => prev.map(e => e.id === event.id ? { ...event, updatedAt: new Date().toISOString() } : e)); } 
-    else { setEvents(prev => [...prev, { ...event, id: generateId(), createdAt: new Date().toISOString() }].sort((a, b) => a.time.localeCompare(b.time))); }
+    let newEvents;
+    if (isEditingEvent && event.id) { 
+        newEvents = events.map(e => e.id === event.id ? { ...event, updatedAt: new Date().toISOString() } : e);
+    } else { 
+        newEvents = [...events, { ...event, id: generateId(), createdAt: new Date().toISOString() }].sort((a, b) => a.time.localeCompare(b.time));
+    }
+    setEvents(newEvents);
     setShowEventModal(false);
+    await saveToDb({ events: newEvents });
   };
-  const handleDeleteEvent = (id: string, e: React.MouseEvent) => { e.stopPropagation(); setEvents(prev => prev.filter(ev => ev.id !== id)); };
-  const handleAddExpense = (amount: number, item: string, payer: string) => { setExpenses(prev => [{ id: generateId(), amount, item, payer, date: new Date().toISOString().split('T')[0], createdAt: new Date().toISOString() }, ...prev]); };
+  const handleDeleteEvent = async (id: string, e: React.MouseEvent) => { 
+      e.stopPropagation(); 
+      const newEvents = events.filter(ev => ev.id !== id);
+      setEvents(newEvents);
+      await saveToDb({ events: newEvents });
+  };
+
+  const handleAddExpense = async (amount: number, item: string, payer: string) => { 
+      const newExpenses = [{ id: generateId(), amount, item, payer, date: new Date().toISOString().split('T')[0], createdAt: new Date().toISOString() }, ...expenses];
+      setExpenses(newExpenses);
+      await saveToDb({ expenses: newExpenses });
+  };
+
   const handleGenerateTransport = async (startEvent: ItineraryEvent, endEvent: ItineraryEvent) => {
     if (!startEvent.id || generatingTransportId === startEvent.id) return;
     setGeneratingTransportId(startEvent.id);
     const resultText = await generateTransportSuggestion(startEvent.location || startEvent.title, endEvent.location || endEvent.title);
     const parts = resultText.split('|');
     if (parts.length >= 2) {
-      setEvents(prev => [...prev, { id: generateId(), date: getDateStrFromDay(activeDay, tripSettings.startDate), time: startEvent.time, title: '', location: '', type: 'transport', transportMode: (parts[0].trim().toLowerCase() as any) || 'train', duration: parts[1].trim(), notes: parts[2] || '', createdAt: new Date().toISOString() }].sort((a, b) => a.time.localeCompare(b.time)));
+      const newEvent: ItineraryEvent = {
+        id: generateId(),
+        date: getDateStrFromDay(activeDay, tripSettings.startDate),
+        time: startEvent.time,
+        title: '',
+        location: '',
+        type: 'transport',
+        transportMode: (parts[0].trim().toLowerCase() as any) || 'train',
+        duration: parts[1].trim(),
+        notes: parts[2] || '',
+        createdAt: new Date().toISOString()
+      };
+      const newEvents = [...events, newEvent].sort((a, b) => a.time.localeCompare(b.time));
+      setEvents(newEvents);
+      await saveToDb({ events: newEvents });
     }
     setGeneratingTransportId(null);
   };
   
   const handleOpenHotelModal = (hotel?: Hotel) => { setCurrentHotel(hotel || { id: '', name: '', location: '', bookingCode: '', image: '' }); setShowHotelModal(true); };
-  const handleSaveHotel = (hotel: Hotel) => { if (hotel.id) { setHotels(prev => prev.map(h => h.id === hotel.id ? hotel : h)); } else { setHotels(prev => [...prev, { ...hotel, id: generateId() }]); } setShowHotelModal(false); };
-  const handleDeleteHotel = (id: string) => { setHotels(prev => prev.filter(h => h.id !== id)); setShowHotelModal(false); };
+  const handleSaveHotel = async (hotel: Hotel) => { 
+      let newHotels;
+      if (hotel.id) { newHotels = hotels.map(h => h.id === hotel.id ? hotel : h); } 
+      else { newHotels = [...hotels, { ...hotel, id: generateId() }]; } 
+      setHotels(newHotels);
+      setShowHotelModal(false); 
+      await saveToDb({ hotels: newHotels });
+  };
+  const handleDeleteHotel = async (id: string) => { 
+      const newHotels = hotels.filter(h => h.id !== id);
+      setHotels(newHotels); 
+      setShowHotelModal(false); 
+      await saveToDb({ hotels: newHotels });
+  };
   
   const handleOpenVoucherModal = (voucher?: Voucher) => { setCurrentVoucher(voucher || { id: '', title: '', type: 'transport', referenceNo: '' }); setShowVoucherModal(true); };
-  const handleSaveVoucher = (voucher: Voucher) => { if (voucher.id) { setVouchers(prev => prev.map(v => v.id === voucher.id ? voucher : v)); } else { setVouchers(prev => [...prev, { ...voucher, id: generateId() }]); } setShowVoucherModal(false); };
-  const handleDeleteVoucher = (id: string) => { setVouchers(prev => prev.filter(v => v.id !== id)); setShowVoucherModal(false); };
+  const handleSaveVoucher = async (voucher: Voucher) => { 
+      let newVouchers;
+      if (voucher.id) { newVouchers = vouchers.map(v => v.id === voucher.id ? voucher : v); } 
+      else { newVouchers = [...vouchers, { ...voucher, id: generateId() }]; } 
+      setVouchers(newVouchers);
+      setShowVoucherModal(false); 
+      await saveToDb({ vouchers: newVouchers });
+  };
+  const handleDeleteVoucher = async (id: string) => { 
+      const newVouchers = vouchers.filter(v => v.id !== id);
+      setVouchers(newVouchers); 
+      setShowVoucherModal(false); 
+      await saveToDb({ vouchers: newVouchers });
+  };
 
   const handleOpenMemberModal = (member?: Member) => { setCurrentMember(member || { id: '', name: '', themeIdx: 0, img: 'https://api.dicebear.com/7.x/avataaars/svg?seed=New', level: 1, exp: 0 }); setShowMemberModal(true); };
-  const handleSaveMember = (member: Member) => { if (member.id) { setMembers(prev => prev.map(m => m.id === member.id ? member : m)); } else { setMembers(prev => [...prev, { ...member, id: generateId(), exp: 0 }]); } setShowMemberModal(false); };
-  const handleDeleteMember = (id: string) => { if(members.length <= 1) { alert("不能刪除最後一位成員！"); return; } setMembers(prev => prev.filter(m => m.id !== id)); setShowMemberModal(false); };
-  
-  const handleAddJournalEntry = (entry: JournalEntry) => {
-    setJournalEntries(prev => [{ ...entry, id: generateId() }, ...prev]);
-    if (entry.authorId) { setMembers(prev => prev.map(m => { if (m.id === entry.authorId) { const newExp = (m.exp || 0) + 1; const newLevel = calculateLevelFromExp(newExp); return { ...m, exp: newExp, level: newLevel }; } return m; })); }
-    setShowJournalModal(false);
+  const handleSaveMember = async (member: Member) => { 
+      let newMembers;
+      if (member.id) { newMembers = members.map(m => m.id === member.id ? member : m); } 
+      else { newMembers = [...members, { ...member, id: generateId(), exp: 0 }]; } 
+      setMembers(newMembers);
+      setShowMemberModal(false); 
+      await saveToDb({ members: newMembers });
   };
-  const handleDeleteJournalEntry = (id: string) => { setJournalEntries(prev => prev.filter(e => e.id !== id)); };
+  const handleDeleteMember = async (id: string) => { 
+      if(members.length <= 1) { alert("不能刪除最後一位成員！"); return; } 
+      const newMembers = members.filter(m => m.id !== id);
+      setMembers(newMembers); 
+      setShowMemberModal(false); 
+      await saveToDb({ members: newMembers });
+  };
+  
+  const handleAddJournalEntry = async (entry: JournalEntry) => {
+    const newEntries = [{ ...entry, id: generateId() }, ...journalEntries];
+    setJournalEntries(newEntries);
+    
+    // XP Logic
+    let newMembers = members;
+    if (entry.authorId) { 
+        newMembers = members.map(m => { 
+            if (m.id === entry.authorId) { 
+                const newExp = (m.exp || 0) + 1; 
+                const newLevel = calculateLevelFromExp(newExp); 
+                return { ...m, exp: newExp, level: newLevel }; 
+            } 
+            return m; 
+        }); 
+        setMembers(newMembers);
+    }
+    setShowJournalModal(false);
+    await saveToDb({ journalEntries: newEntries, members: newMembers });
+  };
+  const handleDeleteJournalEntry = async (id: string) => { 
+      const newEntries = journalEntries.filter(e => e.id !== id);
+      setJournalEntries(newEntries); 
+      await saveToDb({ journalEntries: newEntries });
+  };
 
   return (
     <div className={`min-h-screen ${currentTheme.bgLight} font-['DotGothic16'] text-gray-700 max-w-md mx-auto shadow-2xl relative overflow-x-hidden transition-colors duration-300`}>
@@ -512,7 +575,7 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} currentTheme={currentTheme} />
 
       {/* Modals Injection */}
-      {showWeatherModal && <WeatherModal onClose={() => setShowWeatherModal(false)} />}
+      {showWeatherModal && <WeatherModal weather={currentWeather} onClose={() => setShowWeatherModal(false)} />}
       {showSettingsModal && <SettingsModal settings={tripSettings} totalDays={totalDays} adventureId={adventureId} onClose={() => setShowSettingsModal(false)} onSave={handleSaveSettings} />}
       {showEventModal && currentEvent && <EventModal event={currentEvent} isEditing={isEditingEvent} currentTheme={currentTheme} onClose={() => setShowEventModal(false)} onSave={handleSaveEvent} />}
       {showFlightModal && <FlightModal flightData={flightData[editingFlightDirection]} currentTheme={currentTheme} onClose={() => setShowFlightModal(false)} onSave={handleSaveFlights} />}

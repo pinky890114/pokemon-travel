@@ -1,8 +1,9 @@
-import React, { useRef, useState } from 'react';
+
+import React, { useRef, useState, useEffect } from 'react';
 import { MapPin, ArrowUp, ArrowDown, Plus, Minus, Trash2, StickyNote, X, Train, Car, Bus, Loader2, Wand2 } from 'lucide-react';
-import { ItineraryEvent, TripSettings, Theme } from '../types';
-import { getDayInfo, getPokemonSprite, getCityWeather, getDateStrFromDay } from '../utils';
-import { POKEMON_THEMES, POKE_CARD_STYLE, DIGITAL_FONT_STYLE, POKE_BTN_STYLE } from '../constants';
+import { ItineraryEvent, TripSettings, Theme, WeatherInfo } from '../types';
+import { getDayInfo, getPokemonSprite, getCityWeather, getDateStrFromDay, fetchRealtimeWeather, identifyCityKey } from '../utils';
+import { POKEMON_THEMES, POKE_CARD_STYLE, DIGITAL_FONT_STYLE, POKE_BTN_STYLE, CITY_WEATHER_DB } from '../constants';
 
 interface ItineraryViewProps {
   activeDay: number;
@@ -23,7 +24,28 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
   onOpenWeather, onAddEvent, onDeleteEvent, onGenerateTransport, generatingTransportId
 }) => {
   const dayEvents = events.filter(e => e.date === getDateStrFromDay(activeDay, tripSettings.startDate));
-  const cityInfo = getCityWeather(activeDay, dayEvents);
+  
+  // Initial state from static DB
+  const cityKey = identifyCityKey(activeDay, dayEvents);
+  const [cityInfo, setCityInfo] = useState<WeatherInfo>(CITY_WEATHER_DB[cityKey]);
+  const [loadingWeather, setLoadingWeather] = useState(false);
+
+  // Fetch real-time weather
+  useEffect(() => {
+    const key = identifyCityKey(activeDay, dayEvents);
+    const staticInfo = CITY_WEATHER_DB[key];
+    setCityInfo(staticInfo); // Reset to static first to avoid stale data
+
+    if (staticInfo.lat && staticInfo.lng) {
+      setLoadingWeather(true);
+      fetchRealtimeWeather(staticInfo.lat, staticInfo.lng).then(realtime => {
+        if (realtime) {
+          setCityInfo(prev => ({ ...prev, ...realtime }));
+        }
+        setLoadingWeather(false);
+      });
+    }
+  }, [activeDay, events]); // Re-run if events change (might change city)
   
   // Drag to scroll logic
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -108,7 +130,8 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
 
       {/* Weather Card */}
       <div className="px-6">
-        <button onClick={onOpenWeather} className={`w-full text-left ${POKE_CARD_STYLE} p-0 active:scale-[0.98] transition-transform overflow-hidden`}>
+        <button onClick={onOpenWeather} className={`w-full text-left ${POKE_CARD_STYLE} p-0 active:scale-[0.98] transition-transform overflow-hidden relative`}>
+          {loadingWeather && <div className="absolute top-2 right-2"><Loader2 size={16} className="animate-spin text-gray-400"/></div>}
           <div className={`px-4 py-2 border-b-[3px] border-black flex justify-between items-center bg-gray-100`}>
               <div className="flex items-center font-black text-sm text-gray-700 uppercase tracking-tighter">
                 <MapPin size={16} className="mr-1" /> {cityInfo.name}
@@ -118,7 +141,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
           <div className={`p-4 relative ${cityInfo.condition === 'sunny' ? 'bg-[#FFF9C4]' : cityInfo.condition === 'rain' ? 'bg-[#BBDEFB]' : 'bg-gray-50'}`}>
             <div className="flex justify-between items-center relative z-10">
               <div>
-                  <div className="text-[10px] text-gray-600 font-bold mb-1 tracking-widest uppercase">Status</div>
+                  <div className="text-[10px] text-gray-600 font-bold mb-1 tracking-widest uppercase">Current</div>
                   <h2 className="text-4xl font-black text-gray-800 tracking-tighter uppercase">{cityInfo.condition}</h2>
                   <div className="flex items-center mt-2 space-x-3">
                       <span className="text-4xl">{cityInfo.icon}</span>

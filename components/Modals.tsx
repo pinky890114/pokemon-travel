@@ -1,26 +1,35 @@
 import React, { useState } from 'react';
 import { X, Sun, Plus, Minus, Trash2, Upload, Ticket, QrCode, Check, Camera, Copy } from 'lucide-react';
 import { POKE_CARD_STYLE, POKE_INPUT_STYLE, POKE_BTN_STYLE, DIGITAL_FONT_STYLE, POKEMON_THEMES } from '../constants';
-import { TripSettings, ItineraryEvent, FlightSegment, Theme, Hotel, Voucher, Member, JournalEntry } from '../types';
+import { TripSettings, ItineraryEvent, FlightSegment, Theme, Hotel, Voucher, Member, JournalEntry, WeatherInfo } from '../types';
 import { getPokemonSprite, compressImage } from '../utils';
 
 // --- Weather Modal ---
-export const WeatherModal: React.FC<{ onClose: () => void }> = ({ onClose }) => (
+export const WeatherModal: React.FC<{ weather: WeatherInfo; onClose: () => void }> = ({ weather, onClose }) => (
   <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-6 backdrop-blur-sm animate-in fade-in">
     <div className={`${POKE_CARD_STYLE} w-full max-w-sm h-[60vh] flex flex-col overflow-hidden`}>
        <div className="flex justify-between items-center p-4 border-b-[3px] border-black bg-gray-50 font-black">
-         <h3 className="text-xl">氣候分析</h3>
+         <h3 className="text-xl">氣候分析: {weather.name}</h3>
          <button onClick={onClose}><X size={18} /></button>
        </div>
        <div className="flex-1 overflow-y-auto p-4">
           <div className="space-y-2">
-             {[...Array(12)].map((_, i) => (
-                <div key={i} className="flex items-center justify-between p-2 border-b-2 border-dashed border-gray-200">
-                   <span className="text-sm font-bold text-gray-500 w-12">{9+i}:00</span>
-                   <Sun size={16} className="text-yellow-500" />
-                   <span className={`font-black text-gray-800 w-12 text-right ${DIGITAL_FONT_STYLE}`}>15°</span>
-                </div>
-             ))}
+             {[...Array(12)].map((_, i) => {
+                const hour = 9 + i;
+                // Simulate hourly temp curve (peak at 14:00)
+                const peakHour = 14;
+                const hourDiff = Math.abs(hour - peakHour);
+                let simTemp = Math.round(weather.maxTemp - (hourDiff * 0.8));
+                simTemp = Math.max(simTemp, weather.minTemp);
+
+                return (
+                    <div key={i} className="flex items-center justify-between p-2 border-b-2 border-dashed border-gray-200">
+                    <span className="text-sm font-bold text-gray-500 w-12">{hour}:00</span>
+                    <span className="text-xl">{weather.icon}</span>
+                    <span className={`font-black text-gray-800 w-12 text-right ${DIGITAL_FONT_STYLE}`}>{simTemp}°</span>
+                    </div>
+                );
+             })}
           </div>
        </div>
     </div>
@@ -50,8 +59,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, totalDay
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-6 backdrop-blur-sm animate-in fade-in">
-      <div className={`${POKE_CARD_STYLE} w-full max-w-sm p-6`}>
+    <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
+      <div className={`${POKE_CARD_STYLE} w-full max-w-sm p-6 max-h-[90vh] overflow-y-auto`}>
         <div className="flex justify-between items-center mb-6 border-b-2 border-black pb-2">
           <h3 className="font-black text-xl">旅行設定</h3>
           <button onClick={onClose}><X size={20}/></button>
@@ -81,7 +90,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, totalDay
              <label className="text-xs font-bold text-gray-500 mb-1 block uppercase">Subtitle</label>
              <input type="text" value={localSettings.subtitle} onChange={e => setLocalSettings({...localSettings, subtitle: e.target.value})} className={`w-full p-2 bg-gray-50 font-black ${POKE_INPUT_STYLE}`} />
            </div>
-           <div className="grid grid-cols-2 gap-4">
+           
+           {/* Changed to vertical stack (grid-cols-1) to prevent overlap on mobile */}
+           <div className="grid grid-cols-1 gap-4">
               <div>
                 <label className="text-xs font-bold text-gray-500 mb-1 block uppercase">Start Date</label>
                 <input type="date" value={localSettings.startDate} onChange={e => setLocalSettings({...localSettings, startDate: e.target.value})} className={`w-full p-2 bg-gray-50 font-black ${POKE_INPUT_STYLE}`} />
