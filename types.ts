@@ -1,3 +1,4 @@
+
 export interface TripSettings {
   title: string;
   subtitle: string;
@@ -39,6 +40,18 @@ export interface Hotel {
   checkIn?: string;
   checkOut?: string;
   notes?: string;
+  createdAt?: any;
+}
+
+export interface Voucher {
+  id: string;
+  title: string;
+  type: 'transport' | 'attraction' | 'other';
+  referenceNo: string;
+  date?: string;
+  notes?: string;
+  qrData?: string; // Placeholder for visual code string
+  qrImage?: string; // Actual uploaded image
   createdAt?: any;
 }
 

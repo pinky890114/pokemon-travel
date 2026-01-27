@@ -1,7 +1,7 @@
 import React from 'react';
-import { X, Sun, Plus, Minus, Trash2, Upload } from 'lucide-react';
+import { X, Sun, Plus, Minus, Trash2, Upload, Ticket, QrCode } from 'lucide-react';
 import { POKE_CARD_STYLE, POKE_INPUT_STYLE, POKE_BTN_STYLE, DIGITAL_FONT_STYLE } from '../constants';
-import { TripSettings, ItineraryEvent, FlightSegment, Theme, Hotel } from '../types';
+import { TripSettings, ItineraryEvent, FlightSegment, Theme, Hotel, Voucher } from '../types';
 
 // --- Weather Modal ---
 export const WeatherModal: React.FC<{ onClose: () => void }> = ({ onClose }) => (
@@ -289,6 +289,131 @@ export const HotelModal: React.FC<HotelModalProps> = ({ hotel, currentTheme, onC
               </button>
             </div>
          </div>
+      </div>
+    </div>
+  );
+};
+
+// --- QR Modal ---
+export const QRModal: React.FC<{ image: string; title: string; onClose: () => void }> = ({ image, title, onClose }) => (
+  <div className="fixed inset-0 bg-black/90 z-[200] flex items-center justify-center p-6 backdrop-blur-sm animate-in fade-in" onClick={onClose}>
+     <div className={`${POKE_CARD_STYLE} p-4 w-full max-w-sm`} onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-4">
+           <h3 className="font-black text-lg truncate pr-2">{title}</h3>
+           <button onClick={onClose}><X size={24}/></button>
+        </div>
+        <div className="aspect-square bg-white rounded-lg border-2 border-black flex items-center justify-center overflow-hidden p-2">
+           <img src={image} alt="QR Code" className="w-full h-full object-contain" />
+        </div>
+        <div className="flex items-center justify-center mt-4">
+           <p className="text-center text-xs font-bold bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full border border-yellow-300 animate-pulse">
+              請向工作人員出示此條碼
+           </p>
+        </div>
+     </div>
+  </div>
+);
+
+// --- Voucher Modal ---
+interface VoucherModalProps {
+  voucher: Voucher;
+  currentTheme: Theme;
+  onClose: () => void;
+  onSave: (voucher: Voucher) => void;
+  onDelete: (id: string) => void;
+}
+
+export const VoucherModal: React.FC<VoucherModalProps> = ({ voucher, currentTheme, onClose, onSave, onDelete }) => {
+  const [localVoucher, setLocalVoucher] = React.useState(voucher);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLocalVoucher({ ...localVoucher, qrImage: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-6 backdrop-blur-sm animate-in fade-in">
+      <div className={`${POKE_CARD_STYLE} w-full max-w-sm p-6 max-h-[85vh] overflow-y-auto`}>
+        <div className="flex justify-between items-center mb-6 border-b-2 border-black pb-2 font-black">
+          <h3 className="text-xl">票券憑證</h3>
+          <button onClick={onClose}><X size={20}/></button>
+        </div>
+        <div className="space-y-4 pb-12">
+           <input 
+             type="text" 
+             placeholder="憑證名稱 (如: Swiss Pass)" 
+             value={localVoucher.title} 
+             onChange={e => setLocalVoucher({...localVoucher, title: e.target.value})} 
+             className={`w-full p-2 font-black ${POKE_INPUT_STYLE}`} 
+           />
+           <select value={localVoucher.type} onChange={e => setLocalVoucher({...localVoucher, type: e.target.value as any})} className={`w-full p-2 font-black ${POKE_INPUT_STYLE}`}>
+              <option value="transport">交通票券</option>
+              <option value="attraction">景點門票</option>
+              <option value="other">其他</option>
+           </select>
+           
+           <input 
+             type="text" 
+             placeholder="參考編號 / 訂位代號" 
+             value={localVoucher.referenceNo} 
+             onChange={e => setLocalVoucher({...localVoucher, referenceNo: e.target.value})} 
+             className={`w-full p-2 text-sm font-black font-mono ${POKE_INPUT_STYLE}`} 
+           />
+
+           <input type="date" value={localVoucher.date || ''} onChange={e => setLocalVoucher({...localVoucher, date: e.target.value})} className={`w-full p-2 text-xs font-black ${POKE_INPUT_STYLE}`} />
+
+           {/* QR Code Upload Section */}
+           <div>
+              <label className="text-[10px] text-gray-500 font-bold block mb-1">QR CODE IMAGE</label>
+              <div className="flex items-center space-x-2">
+                  <button 
+                      onClick={() => fileInputRef.current?.click()}
+                      className={`flex-1 py-2 font-bold text-xs border-2 border-black border-dashed bg-gray-50 rounded-lg hover:bg-gray-100 flex items-center justify-center active:bg-gray-200 transition-colors`}
+                  >
+                      <Upload size={14} className="mr-2" />
+                      {localVoucher.qrImage ? '更換圖片' : '上傳圖片'}
+                  </button>
+                  <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      onChange={handleImageUpload} 
+                      className="hidden" 
+                      accept="image/*"
+                  />
+              </div>
+              {localVoucher.qrImage && (
+                  <div className="mt-2 w-32 mx-auto aspect-square bg-white rounded-lg border-2 border-black overflow-hidden relative group">
+                       <img src={localVoucher.qrImage} alt="preview" className="w-full h-full object-contain p-2" />
+                       <button 
+                          onClick={() => setLocalVoucher({...localVoucher, qrImage: ''})} 
+                          className="absolute top-1 right-1 bg-white border-2 border-black rounded-full p-1 shadow-[1px_1px_0px_#000] active:translate-y-[1px] active:shadow-none"
+                       >
+                          <X size={10}/>
+                       </button>
+                  </div>
+              )}
+           </div>
+
+           <textarea placeholder="使用說明 / 備註..." value={localVoucher.notes || ''} onChange={e => setLocalVoucher({...localVoucher, notes: e.target.value})} className={`w-full p-2 h-24 text-xs font-bold resize-none ${POKE_INPUT_STYLE}`}></textarea>
+           
+           <div className="flex space-x-2 pt-2">
+              {localVoucher.id && (
+                <button onClick={() => onDelete(localVoucher.id)} className={`flex-1 bg-red-100 text-red-600 py-3 font-black ${POKE_BTN_STYLE} flex justify-center`}>
+                  <Trash2 size={16} />
+                </button>
+              )}
+              <button onClick={() => onSave(localVoucher)} className={`flex-[3] ${currentTheme.color} text-white py-3 font-black ${POKE_BTN_STYLE}`}>
+                確定儲存
+              </button>
+            </div>
+        </div>
       </div>
     </div>
   );

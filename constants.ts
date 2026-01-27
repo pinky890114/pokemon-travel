@@ -1,4 +1,4 @@
-import { FlightData, Hotel, Member, Theme, WeatherInfo } from './types';
+import { FlightData, Hotel, Member, Theme, WeatherInfo, Voucher } from './types';
 
 export const POKE_CARD_STYLE = "bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-xl";
 export const POKE_BTN_STYLE = "border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all rounded-xl";
@@ -89,6 +89,41 @@ export const INITIAL_FLIGHT_DATA: FlightData = {
 };
 
 export const INITIAL_HOTELS: Hotel[] = [
-  { id: 'h1', name: 'Hotel Spinne', location: 'Grindelwald', bookingCode: 'AG-98322', image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=300', checkIn: '2026-02-20', checkOut: '2026-02-23' },
-  { id: 'h2', name: 'Backstage Hotel', location: 'Zermatt', bookingCode: 'BK-11029', image: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=300', checkIn: '2026-02-23', checkOut: '2026-02-25' }
+  { id: 'h1', name: 'Hotel Spinne', location: 'Grindelwald, Switzerland', bookingCode: 'AG-98322', image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=300', checkIn: '2026-02-20', checkOut: '2026-02-23' },
+  { id: 'h2', name: 'Backstage Hotel', location: 'Zermatt, Switzerland', bookingCode: 'BK-11029', image: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=300', checkIn: '2026-02-23', checkOut: '2026-02-25' }
+];
+
+export const INITIAL_VOUCHERS: Voucher[] = [
+  { 
+    id: 'v1', 
+    title: 'Swiss Travel Pass', 
+    type: 'transport', 
+    referenceNo: 'CH-STP-8829103', 
+    date: '2026-02-20',
+    notes: '15 Days Continuous Pass. Valid for trains, boats, and buses in Switzerland.',
+  },
+  { 
+    id: 'v2', 
+    title: 'Jungfraujoch Ticket', 
+    type: 'attraction', 
+    referenceNo: 'JFJ-9921', 
+    date: '2026-02-22',
+    notes: 'Top of Europe. Boarding at Grindelwald Terminal.',
+  },
+  { 
+    id: 'v3', 
+    title: 'Trenitalia: Milan > Venice', 
+    type: 'transport', 
+    referenceNo: 'PNR: YH992K', 
+    date: '2026-03-03',
+    notes: 'Frecciarossa 9723. Car 4, Seat 12D.',
+  },
+  { 
+    id: 'v4', 
+    title: 'Colosseum & Forum', 
+    type: 'attraction', 
+    referenceNo: 'ROM-COL-221', 
+    date: '2026-03-08',
+    notes: 'Skip-the-line access. Meeting point: Arch of Constantine.',
+  }
 ];

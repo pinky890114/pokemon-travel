@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
-import { Plane, Home, QrCode, Edit3, ArrowDownCircle, Clock, Luggage, MapPin, Plus, StickyNote, Calendar } from 'lucide-react';
-import { FlightData, Hotel, Theme } from '../types';
+import { Plane, Home, QrCode, Edit3, ArrowDownCircle, Clock, Luggage, MapPin, Plus, StickyNote, Calendar, Ticket } from 'lucide-react';
+import { FlightData, Hotel, Theme, Voucher } from '../types';
 import { POKE_CARD_STYLE, DIGITAL_FONT_STYLE } from '../constants';
 
 interface BookingViewProps {
   currentTheme: Theme;
   flightData: FlightData;
   hotels?: Hotel[];
+  vouchers?: Voucher[];
   onEditFlights: (direction: 'outbound' | 'inbound') => void;
   onOpenHotelModal?: (hotel?: Hotel) => void;
+  onOpenVoucherModal?: (voucher?: Voucher) => void;
+  onShowQR?: (image: string, title: string) => void;
 }
 
-export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightData, hotels = [], onEditFlights, onOpenHotelModal }) => {
+export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightData, hotels = [], vouchers = [], onEditFlights, onOpenHotelModal, onOpenVoucherModal, onShowQR }) => {
   const [bookingTab, setBookingTab] = useState<'flight' | 'hotel' | 'ticket'>('flight');
   const [flightDirection, setFlightDirection] = useState<'outbound' | 'inbound'>('outbound');
 
@@ -141,6 +144,71 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
           {hotels.length === 0 && (
             <div className={`${POKE_CARD_STYLE} p-8 text-center bg-gray-50 text-gray-400 font-bold`}>
               尚未新增任何住宿...
+            </div>
+          )}
+        </div>
+      )}
+
+      {bookingTab === 'ticket' && (
+        <div className="space-y-4">
+           <div className="flex justify-end">
+            <button onClick={() => onOpenVoucherModal && onOpenVoucherModal()} className="px-3 py-1.5 text-xs font-bold rounded-lg border-2 bg-[#FFF9C4] text-[#F57F17] border-black shadow-[2px_2px_0px_#000] active:translate-y-[1px] active:shadow-none transition-all flex items-center">
+              <Plus size={14} className="mr-1" /> 新增憑證
+            </button>
+          </div>
+          {vouchers.map(v => (
+             <button key={v.id} onClick={() => onOpenVoucherModal && onOpenVoucherModal(v)} className={`${POKE_CARD_STYLE} flex overflow-hidden w-full text-left active:scale-[0.98] transition-transform`}>
+                
+                {/* Barcode Strip on Left */}
+                <div className="w-8 bg-gray-100 border-r-2 border-black border-dashed flex flex-col items-center justify-center p-1 relative">
+                   <div className="absolute inset-y-2 left-1/2 -translate-x-1/2 w-1 border-x-2 border-dashed border-gray-300"></div>
+                </div>
+
+                <div className="p-3 flex-1">
+                   <div className="flex justify-between items-start mb-2">
+                      <div>
+                         <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded border border-black text-white mb-1 inline-block ${v.type === 'transport' ? 'bg-blue-500' : v.type === 'attraction' ? 'bg-red-500' : 'bg-gray-500'}`}>
+                           {v.type === 'transport' ? '交通' : v.type === 'attraction' ? '景點' : '其他'}
+                         </span>
+                         <h4 className="font-black text-gray-800 text-lg leading-none">{v.title}</h4>
+                      </div>
+                      <button 
+                         onClick={(e) => {
+                           if (v.qrImage) {
+                             e.stopPropagation();
+                             onShowQR && onShowQR(v.qrImage, v.title);
+                           }
+                         }}
+                         className={`p-1 rounded-lg border-2 transition-all ${v.qrImage ? 'border-black bg-white hover:bg-gray-100 text-black shadow-[2px_2px_0px_#000] active:shadow-none active:translate-y-[1px]' : 'border-transparent text-gray-300 cursor-default'}`}
+                      >
+                         <QrCode size={28} />
+                      </button>
+                   </div>
+                   
+                   <div className="bg-gray-50 border-2 border-gray-200 rounded p-2 mb-2 font-mono">
+                      <div className="text-[9px] text-gray-400 font-bold">REFERENCE NO.</div>
+                      <div className="text-sm font-black text-gray-800 tracking-wider">{v.referenceNo}</div>
+                   </div>
+
+                   <div className="flex gap-4 mb-2">
+                      <div>
+                         <div className="text-[9px] text-gray-400 font-bold">DATE</div>
+                         <div className={`text-sm font-black text-gray-800 ${DIGITAL_FONT_STYLE}`}>{v.date?.replace(/-/g, '/') || '--/--'}</div>
+                      </div>
+                   </div>
+
+                   {v.notes && (
+                      <div className="text-[10px] text-gray-500 border-t border-dashed border-gray-300 pt-2 flex items-start">
+                        <StickyNote size={10} className="mr-1 mt-0.5 flex-shrink-0"/>
+                        <span>{v.notes}</span>
+                      </div>
+                   )}
+                </div>
+             </button>
+          ))}
+          {vouchers.length === 0 && (
+             <div className={`${POKE_CARD_STYLE} p-8 text-center bg-gray-50 text-gray-400 font-bold`}>
+              背包裡空空如也...
             </div>
           )}
         </div>
