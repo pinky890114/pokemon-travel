@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plane, Home, QrCode, Edit3, ArrowDownCircle, Clock, Luggage, MapPin, Plus, StickyNote } from 'lucide-react';
+import { Plane, Home, QrCode, Edit3, ArrowDownCircle, Clock, Luggage, MapPin, Plus, StickyNote, Calendar } from 'lucide-react';
 import { FlightData, Hotel, Theme } from '../types';
 import { POKE_CARD_STYLE, DIGITAL_FONT_STYLE } from '../constants';
 
@@ -14,11 +14,6 @@ interface BookingViewProps {
 export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightData, hotels = [], onEditFlights, onOpenHotelModal }) => {
   const [bookingTab, setBookingTab] = useState<'flight' | 'hotel' | 'ticket'>('flight');
   const [flightDirection, setFlightDirection] = useState<'outbound' | 'inbound'>('outbound');
-
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return '--/--';
-    return dateStr.substring(5).replace('-', '/');
-  };
 
   return (
     <div className="px-6 space-y-6 pb-40 animate-in fade-in">
@@ -94,41 +89,50 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
           {hotels.map((h, i) => (
              <button key={h.id} onClick={() => onOpenHotelModal && onOpenHotelModal(h)} className={`${POKE_CARD_STYLE} flex overflow-hidden w-full text-left active:scale-[0.98] transition-transform`}>
                 
-                {/* Date Strip on Far Left */}
-                <div className="w-16 bg-gray-100 border-r-2 border-black flex flex-col items-center justify-center p-2 flex-shrink-0">
-                   <div className="flex flex-col items-center">
-                      <span className="text-[9px] font-bold text-gray-500 leading-none mb-1">IN</span>
-                      <span className={`text-sm font-black text-gray-800 ${DIGITAL_FONT_STYLE}`}>{formatDate(h.checkIn)}</span>
-                   </div>
-                   <div className="w-full h-[2px] bg-gray-300 my-2 border-t border-dashed border-gray-400"></div>
-                   <div className="flex flex-col items-center">
-                      <span className="text-[9px] font-bold text-gray-500 leading-none mb-1">OUT</span>
-                      <span className={`text-sm font-black text-gray-800 ${DIGITAL_FONT_STYLE}`}>{formatDate(h.checkOut)}</span>
-                   </div>
+                {/* Location Strip on Far Left */}
+                <div className="w-10 bg-gray-800 border-r-2 border-black flex items-center justify-center flex-shrink-0 overflow-hidden">
+                   <span className="text-white font-black text-xs tracking-widest uppercase [writing-mode:vertical-rl] rotate-180 py-2 truncate max-h-[140px]">
+                      {h.location.split(',')[0]}
+                   </span>
                 </div>
 
                 <img src={h.image || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=300'} className="w-24 object-cover border-r-2 border-black" alt="hotel" />
                 
-                <div className="p-3 flex-1 flex flex-col justify-center">
-                   <h4 className="font-black text-gray-800 leading-tight text-lg mb-1">{h.name}</h4>
+                <div className="p-3 flex-1 flex flex-col justify-center min-w-0">
+                   <h4 className="font-black text-gray-800 leading-tight text-lg mb-1 truncate">{h.name}</h4>
+                   
                    <a 
                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(h.location)}`}
                      target="_blank" 
                      rel="noopener noreferrer"
                      onClick={(e) => e.stopPropagation()}
-                     className="text-[10px] font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center tracking-tighter uppercase mb-2"
+                     className="text-[10px] font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center tracking-tighter uppercase mb-2 truncate"
                    >
-                     <MapPin size={10} className="mr-1"/>{h.location}
+                     <MapPin size={10} className="mr-1 flex-shrink-0"/>{h.location}
                    </a>
+
+                   {/* Date Info */}
+                   <div className="flex items-center gap-2 mb-2 w-full">
+                       <div className="flex-1 bg-gray-50 border border-gray-200 rounded px-1.5 py-1 flex flex-col items-center">
+                           <span className="text-[9px] font-bold text-gray-400 leading-none mb-0.5">CHECK-IN</span>
+                           <span className={`text-xs font-black text-gray-700 ${DIGITAL_FONT_STYLE} leading-none`}>{h.checkIn?.replace(/-/g, '/') || '--/--/--'}</span>
+                       </div>
+                       <div className="text-gray-300 font-black">→</div>
+                       <div className="flex-1 bg-gray-50 border border-gray-200 rounded px-1.5 py-1 flex flex-col items-center">
+                           <span className="text-[9px] font-bold text-gray-400 leading-none mb-0.5">CHECK-OUT</span>
+                           <span className={`text-xs font-black text-gray-700 ${DIGITAL_FONT_STYLE} leading-none`}>{h.checkOut?.replace(/-/g, '/') || '--/--/--'}</span>
+                       </div>
+                   </div>
+
                    {h.bookingCode && (
                      <div className="inline-flex items-center text-[10px] bg-gray-100 px-2 py-1 rounded border border-gray-300 font-mono font-bold text-black self-start mb-2">
                         {h.bookingCode}
                      </div>
                    )}
                    {h.notes && (
-                      <div className="text-[10px] text-gray-500 bg-yellow-50 p-2 rounded border border-dashed border-yellow-300 font-bold leading-tight flex items-start">
+                      <div className="text-[10px] text-gray-500 bg-yellow-50 p-2 rounded border border-dashed border-yellow-300 font-bold leading-tight flex items-start w-full">
                         <StickyNote size={10} className="mr-1 mt-0.5 flex-shrink-0 text-yellow-600"/>
-                        <span>{h.notes}</span>
+                        <span className="break-all">{h.notes}</span>
                       </div>
                    )}
                 </div>
