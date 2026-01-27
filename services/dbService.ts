@@ -1,16 +1,12 @@
-
 import { db } from './firebaseConfig';
-import { collection, doc, setDoc, getDoc, updateDoc, arrayUnion, query, where, getDocs, onSnapshot } from "firebase/firestore";
+import { collection, doc, setDoc, getDoc, updateDoc, deleteDoc, arrayUnion, query, where, getDocs, onSnapshot } from "firebase/firestore";
 import { AdventureMetadata, User } from '../types';
 
 const ADVENTURE_COLLECTION = 'adventures';
 
-// Create a new adventure
 export const createAdventureInDb = async (adventure: AdventureMetadata, initialData: any) => {
     try {
         const advRef = doc(db, ADVENTURE_COLLECTION, adventure.id);
-        // Save as a single document containing both metadata and the full data blob
-        // This is a simplified approach for the beginner tutorial.
         await setDoc(advRef, {
             metadata: adventure,
             data: initialData
@@ -18,11 +14,10 @@ export const createAdventureInDb = async (adventure: AdventureMetadata, initialD
         return true;
     } catch (e) {
         console.error("Error creating adventure:", e);
-        throw e; // Propagate error to UI
+        throw e;
     }
 };
 
-// Join an existing adventure
 export const joinAdventureInDb = async (adventureId: string, user: User) => {
     try {
         const advRef = doc(db, ADVENTURE_COLLECTION, adventureId);
@@ -32,16 +27,14 @@ export const joinAdventureInDb = async (adventureId: string, user: User) => {
             throw new Error("Adventure not found");
         }
 
-        const currentData = advSnap.data();
+        const currentData = advSnap.data() as { metadata: AdventureMetadata; data: any };
         const memberIds = currentData.metadata.memberIds || [];
         
         if (!memberIds.includes(user.id)) {
-            // 1. Update metadata memberIds
             await updateDoc(advRef, {
                 'metadata.memberIds': arrayUnion(user.id)
             });
 
-            // 2. Add member to the data.members array inside the data object
             const newMember = {
                 id: user.id,
                 name: user.name,
@@ -59,50 +52,53 @@ export const joinAdventureInDb = async (adventureId: string, user: User) => {
         return true;
     } catch (e) {
         console.error("Error joining adventure:", e);
-        throw e; // Rethrow to handle in UI
+        throw e;
     }
 };
 
-// Get list of adventures for a user (Initial Load)
 export const getUserAdventures = async (userId: string): Promise<AdventureMetadata[]> => {
     try {
-        // Query adventures where the memberIds array contains the userId
         const q = query(
             collection(db, ADVENTURE_COLLECTION),
             where('metadata.memberIds', 'array-contains', userId)
         );
         const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(doc => doc.data().metadata as AdventureMetadata);
+        return querySnapshot.docs.map(doc => (doc.data() as any).metadata as AdventureMetadata);
     } catch (e) {
         console.error("Error fetching user adventures:", e);
-        // We throw the error now so the UI knows something is wrong (e.g. wrong API key or no DB)
         throw e;
     }
 };
 
-// Subscribe to a specific adventure (Real-time sync)
+export const deleteAdventure = async (adventureId: string) => {
+    try {
+        const advRef = doc(db, ADVENTURE_COLLECTION, adventureId);
+        await deleteDoc(advRef);
+        return true;
+    } catch (e) {
+        console.error("Error deleting adventure:", e);
+        throw e;
+    }
+};
+
 export const subscribeToAdventure = (adventureId: string, onUpdate: (data: any) => void) => {
     const advRef = doc(db, ADVENTURE_COLLECTION, adventureId);
     return onSnapshot(advRef, (doc) => {
         if (doc.exists()) {
-            const fullDoc = doc.data();
-            // Pass the inner 'data' object which contains events, expenses, etc.
+            const fullDoc = doc.data() as { data: any; metadata: AdventureMetadata };
             onUpdate(fullDoc.data);
         }
     });
 };
 
-// Update adventure data (Save)
 export const updateAdventureData = async (adventureId: string, data: any) => {
     try {
         const advRef = doc(db, ADVENTURE_COLLECTION, adventureId);
         
-        // Update the 'data' field
         await updateDoc(advRef, {
             data: data
         });
         
-        // If title changed, verify if we need to update metadata.title
         if (data.tripSettings?.title) {
              await updateDoc(advRef, {
                 'metadata.title': data.tripSettings.title
@@ -110,6 +106,5 @@ export const updateAdventureData = async (adventureId: string, data: any) => {
         }
     } catch (e) {
         console.error("Error updating adventure:", e);
-        // Optional: Add toast notification via a global state or callback if needed
     }
 };

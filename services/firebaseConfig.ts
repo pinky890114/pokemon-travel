@@ -2,7 +2,6 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
-// Safely get env variables ensuring string return type
 const getEnv = (key: string): string => {
   try {
     // @ts-ignore
@@ -13,7 +12,6 @@ const getEnv = (key: string): string => {
   }
 };
 
-// Fallback values from your .env file
 const FALLBACK_CONFIG = {
   apiKey: "AIzaSyDggUqxXmEd8qGcMmoFLmim7pfzaiPU4xY",
   authDomain: "poke-log-v2.firebaseapp.com",

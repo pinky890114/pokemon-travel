@@ -20,7 +20,6 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
   const [bookingTab, setBookingTab] = useState<'flight' | 'hotel' | 'ticket' | 'translator'>('flight');
   const [flightDirection, setFlightDirection] = useState<'outbound' | 'inbound'>('outbound');
 
-  // Translator State
   const [translationInput, setTranslationInput] = useState('');
   const [translationResult, setTranslationResult] = useState('');
   const [translationLoading, setTranslationLoading] = useState(false);
@@ -31,13 +30,12 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
   const handleTranslate = async () => {
     if (!translationInput.trim()) return;
     
-    // Dismiss keyboard on mobile
     if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur();
     }
 
     setTranslationLoading(true);
-    setTranslationResult(''); // Clear previous
+    setTranslationResult(''); 
     
     try {
         const result = await translateText(translationInput, transMode);
@@ -49,7 +47,6 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
     }
   };
 
-  // Scroll to result when it appears
   useEffect(() => {
     if (translationResult && resultRef.current) {
         resultRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });

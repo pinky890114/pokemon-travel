@@ -1,5 +1,4 @@
 
-
 import { FlightData, Hotel, Member, Theme, WeatherInfo, Voucher } from './types';
 
 export const POKE_CARD_STYLE = "bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-xl";
@@ -33,7 +32,7 @@ export const EEVEE_THEMES: Theme[] = [
   { name: '伊布', color: 'bg-[#C69C6D]', border: 'border-[#5C4033]', text: 'text-[#5C4033]', bgLight: 'bg-[#F9F4E8]', id: 133 },      
   { name: '水伊布', color: 'bg-[#6890F0]', border: 'border-[#1E3A8A]', text: 'text-[#1E3A8A]', bgLight: 'bg-[#E0F2FE]', id: 134 },    
   { name: '雷伊布', color: 'bg-[#F8D030]', border: 'border-[#854D0E]', text: 'text-[#854D0E]', bgLight: 'bg-[#FEFCE8]', id: 135 },    
-  { name: '火伊布', color: 'bg-[#F08030]', border: 'border-[#9A3412]', text: 'text-[#9A3412]', bgLight: 'bg-[#FFF7ED]', id: 136 },    
+  { name: '火伊布', color: 'bg-[#F08030]', border: 'border-[#9A3412]', text: 'text-[#9A3412]', bgLight: 'bg-[#FFF1F2]', id: 136 },    
   { name: '太陽伊布', color: 'bg-[#F95587]', border: 'border-[#831843]', text: 'text-[#831843]', bgLight: 'bg-[#FDF2F8]', id: 196 },  
   { name: '月亮伊布', color: 'bg-[#3C3C3C]', border: 'border-black', text: 'text-[#1F2937]', bgLight: 'bg-[#F3F4F6]', id: 197 },  
   { name: '葉伊布', color: 'bg-[#78C850]', border: 'border-[#14532D]', text: 'text-[#14532D]', bgLight: 'bg-[#F0FDF4]', id: 470 },    
@@ -48,26 +47,18 @@ export const INITIAL_MEMBERS: Member[] = [
   { id: 'hero', name: '大俠', themeIdx: 6, img: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Hero', level: 1, exp: 0 }, 
 ];
 
-// Expanded Pokemon Themes
 export const POKEMON_THEMES: Theme[] = [
   ...EEVEE_THEMES,
-  // Gen 1 Starters & Pikachu
   { name: '皮卡丘', color: 'bg-[#FACC15]', border: 'border-[#854D0E]', text: 'text-[#854D0E]', bgLight: 'bg-[#FEFCE8]', id: 25 },
   { name: '妙蛙種子', color: 'bg-[#4ADE80]', border: 'border-[#14532D]', text: 'text-[#14532D]', bgLight: 'bg-[#F0FDF4]', id: 1 },
   { name: '小火龍', color: 'bg-[#FB923C]', border: 'border-[#9A3412]', text: 'text-[#9A3412]', bgLight: 'bg-[#FFF7ED]', id: 4 },
   { name: '傑尼龜', color: 'bg-[#60A5FA]', border: 'border-[#1E3A8A]', text: 'text-[#1E3A8A]', bgLight: 'bg-[#EFF6FF]', id: 7 },
-  
-  // Gen 2 Starters
   { name: '菊草葉', color: 'bg-[#A3E635]', border: 'border-[#365314]', text: 'text-[#365314]', bgLight: 'bg-[#F7FEE7]', id: 152 },
   { name: '火球鼠', color: 'bg-[#FCD34D]', border: 'border-[#78350F]', text: 'text-[#78350F]', bgLight: 'bg-[#FFFBEB]', id: 155 },
   { name: '小鋸鱷', color: 'bg-[#38BDF8]', border: 'border-[#0C4A6E]', text: 'text-[#0C4A6E]', bgLight: 'bg-[#F0F9FF]', id: 158 },
-
-  // Gen 3 Starters
   { name: '木守宮', color: 'bg-[#4ADE80]', border: 'border-[#14532D]', text: 'text-[#14532D]', bgLight: 'bg-[#F0FDF4]', id: 252 },
   { name: '火稚雞', color: 'bg-[#F97316]', border: 'border-[#7C2D12]', text: 'text-[#7C2D12]', bgLight: 'bg-[#FFEDD5]', id: 255 },
   { name: '水躍魚', color: 'bg-[#7DD3FC]', border: 'border-[#075985]', text: 'text-[#075985]', bgLight: 'bg-[#E0F2FE]', id: 258 },
-
-  // Popular & Cute
   { name: '胖丁', color: 'bg-[#F472B6]', border: 'border-[#831843]', text: 'text-[#831843]', bgLight: 'bg-[#FDF2F8]', id: 39 },
   { name: '喵喵', color: 'bg-[#FDE68A]', border: 'border-[#78350F]', text: 'text-[#78350F]', bgLight: 'bg-[#FFFBEB]', id: 52 },
   { name: '可達鴨', color: 'bg-[#FACC15]', border: 'border-[#A16207]', text: 'text-[#A16207]', bgLight: 'bg-[#FEFCE8]', id: 54 },
@@ -78,8 +69,6 @@ export const POKEMON_THEMES: Theme[] = [
   { name: '波克比', color: 'bg-[#FEF08A]', border: 'border-[#854D0E]', text: 'text-[#854D0E]', bgLight: 'bg-[#FEFCE8]', id: 175 },
   { name: '瑪力露', color: 'bg-[#60A5FA]', border: 'border-[#1E3A8A]', text: 'text-[#1E3A8A]', bgLight: 'bg-[#EFF6FF]', id: 183 },
   { name: '果然翁', color: 'bg-[#3B82F6]', border: 'border-[#172554]', text: 'text-[#172554]', bgLight: 'bg-[#EFF6FF]', id: 202 },
-
-  // Cool & Strong
   { name: '耿鬼', color: 'bg-[#7E22CE]', border: 'border-[#3B0764]', text: 'text-[#3B0764]', bgLight: 'bg-[#F3E8FF]', id: 94 },
   { name: '大岩蛇', color: 'bg-[#78716C]', border: 'border-[#292524]', text: 'text-[#292524]', bgLight: 'bg-[#F5F5F4]', id: 95 },
   { name: '卡比獸', color: 'bg-[#60A5FA]', border: 'border-[#1E3A8A]', text: 'text-[#1E3A8A]', bgLight: 'bg-[#EFF6FF]', id: 143 },
@@ -92,8 +81,6 @@ export const POKEMON_THEMES: Theme[] = [
   { name: '路卡利歐', color: 'bg-[#2563EB]', border: 'border-[#1E3A8A]', text: 'text-[#1E3A8A]', bgLight: 'bg-[#EFF6FF]', id: 448 },
   { name: '烈咬陸鯊', color: 'bg-[#0F172A]', border: 'border-black', text: 'text-[#0F172A]', bgLight: 'bg-[#F1F5F9]', id: 445 },
   { name: '謎擬Q', color: 'bg-[#E7E5E4]', border: 'border-[#44403C]', text: 'text-[#44403C]', bgLight: 'bg-[#FAFAF9]', id: 778 },
-
-  // Legendaries
   { name: '洛奇亞', color: 'bg-[#E0F2FE]', border: 'border-[#075985]', text: 'text-[#075985]', bgLight: 'bg-[#F0F9FF]', id: 249 },
   { name: '鳳王', color: 'bg-[#EF4444]', border: 'border-[#7F1D1D]', text: 'text-[#7F1D1D]', bgLight: 'bg-[#FEF2F2]', id: 250 },
   { name: '拉帝亞斯', color: 'bg-[#EF4444]', border: 'border-[#7F1D1D]', text: 'text-[#7F1D1D]', bgLight: 'bg-[#FEF2F2]', id: 380 },

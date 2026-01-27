@@ -10,7 +10,7 @@ export interface AdventureMetadata {
   title: string;
   coverImage: string;
   startDate: string;
-  memberIds: string[]; // List of user IDs who are members
+  memberIds: string[];
   createdAt: string;
 }
 
@@ -65,8 +65,8 @@ export interface Voucher {
   referenceNo: string;
   date?: string;
   notes?: string;
-  qrData?: string; // Placeholder for visual code string
-  qrImage?: string; // Actual uploaded image
+  qrData?: string;
+  qrImage?: string;
   createdAt?: any;
 }
 

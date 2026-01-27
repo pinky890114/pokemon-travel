@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Users, Plus, Edit2 } from 'lucide-react';
 import { Member } from '../types';
@@ -19,15 +20,11 @@ export const MembersView: React.FC<MembersViewProps> = ({ members, onMemberClick
        </div>
        <div className="grid grid-cols-2 gap-4">
          {members.map(m => {
-           // Safe fallback if themeIdx is out of bounds
            const theme = POKEMON_THEMES[m.themeIdx] || POKEMON_THEMES[0];
            
-           // Calculate progress
            const currentLevel = m.level || 1;
            const currentExp = m.exp || 0;
-           // Exp required to REACH current level
            const prevThreshold = (currentLevel * (currentLevel - 1)) / 2;
-           // Exp required to REACH next level
            const nextThreshold = (currentLevel * (currentLevel + 1)) / 2;
            
            const progress = Math.min(Math.max((currentExp - prevThreshold) / (nextThreshold - prevThreshold), 0), 1);
@@ -49,7 +46,6 @@ export const MembersView: React.FC<MembersViewProps> = ({ members, onMemberClick
                    <span>{theme.name}</span>
                 </div>
                 
-                {/* XP Progress Bar */}
                 <div className="w-full mt-1">
                     <div className="flex justify-between text-[8px] font-bold text-gray-400 mb-0.5">
                         <span>XP</span>

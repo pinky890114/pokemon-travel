@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Settings } from 'lucide-react';
 import { TripSettings, Member, Theme } from '../types';

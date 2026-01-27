@@ -25,16 +25,14 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
 }) => {
   const dayEvents = events.filter(e => e.date === getDateStrFromDay(activeDay, tripSettings.startDate));
   
-  // Initial state from static DB
   const cityKey = identifyCityKey(activeDay, dayEvents);
   const [cityInfo, setCityInfo] = useState<WeatherInfo>(CITY_WEATHER_DB[cityKey]);
   const [loadingWeather, setLoadingWeather] = useState(false);
 
-  // Fetch real-time weather
   useEffect(() => {
     const key = identifyCityKey(activeDay, dayEvents);
     const staticInfo = CITY_WEATHER_DB[key];
-    setCityInfo(staticInfo); // Reset to static first to avoid stale data
+    setCityInfo(staticInfo);
 
     if (staticInfo.lat && staticInfo.lng) {
       setLoadingWeather(true);
@@ -45,9 +43,8 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
         setLoadingWeather(false);
       });
     }
-  }, [activeDay, events]); // Re-run if events change (might change city)
+  }, [activeDay, events]); 
   
-  // Drag to scroll logic
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isDown, setIsDown] = useState(false);
   const [startX, setStartX] = useState(0);
@@ -72,7 +69,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
     if (!isDown || !scrollRef.current) return;
     e.preventDefault();
     const x = e.pageX - scrollRef.current.offsetLeft;
-    const walk = (x - startX) * 2; // Scroll-fast multiplier
+    const walk = (x - startX) * 2; 
     scrollRef.current.scrollLeft = scrollLeft - walk;
   };
 
@@ -84,7 +81,6 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
 
   return (
     <div className="space-y-4 pb-40 animate-in fade-in">
-      {/* Day Selector */}
       <div 
         ref={scrollRef}
         className="flex space-x-2 overflow-x-auto px-6 py-2 no-scrollbar items-center cursor-grab active:cursor-grabbing select-none"
@@ -99,7 +95,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
           return (
             <button 
               key={day} 
-              onClick={() => !isDown && setActiveDay(day)} // Prevent click when dragging
+              onClick={() => !isDown && setActiveDay(day)} 
               className={`flex-shrink-0 w-16 py-2 rounded-xl border-2 border-black flex flex-col items-center transition-all ${activeDay === day ? `${theme.color} text-white shadow-[2px_2px_0px_0px_#000] -translate-y-1` : 'bg-white text-gray-500 shadow-[2px_2px_0px_#ccc]'}`}
             >
               <span className="text-[10px] font-bold">Day {day}</span>
@@ -109,7 +105,6 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
           );
         })}
         
-        {/* Add/Remove Days Buttons */}
         <div className="flex flex-col space-y-2 flex-shrink-0 pl-1">
           <button 
             onClick={() => handleUpdateDays(totalDays + 1)} 
@@ -128,7 +123,6 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
         </div>
       </div>
 
-      {/* Weather Card */}
       <div className="px-6">
         <button onClick={onOpenWeather} className={`w-full text-left ${POKE_CARD_STYLE} p-0 active:scale-[0.98] transition-transform overflow-hidden relative`}>
           {loadingWeather && <div className="absolute top-2 right-2"><Loader2 size={16} className="animate-spin text-gray-400"/></div>}
@@ -170,11 +164,10 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
         </button>
       </div>
 
-      {/* Events List */}
       <div className="px-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-black text-lg bg-white px-3 py-1 border-[3px] border-black rounded-xl shadow-[3px_3px_0px_0px_#333]">Day {activeDay} 任務</h3>
-          <button onClick={() => onAddEvent()} className={`bg-[#FFF9C4] text-[#F57F17] px-4 py-1.5 text-sm flex items-center ${POKE_BTN_STYLE}`}>
+          <button onClick={() => onAddEvent()} className={`bg-[#FFF9C4] text-[#F57F17] px-4 py-1.5 text-xs flex items-center ${POKE_BTN_STYLE}`}>
             <Plus size={16} className="mr-1" /> 新增
           </button>
         </div>

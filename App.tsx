@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Loader2, Plus, LogOut, Map, ArrowRight, Copy, Check, Users, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Loader2, Plus, LogOut, Map, ArrowRight, Copy, Check, Users, RefreshCw, AlertTriangle, Trash2 } from 'lucide-react';
 
 import { generateTransportSuggestion } from './services/geminiService';
-import { createAdventureInDb, getUserAdventures, joinAdventureInDb, subscribeToAdventure, updateAdventureData } from './services/dbService';
+import { createAdventureInDb, getUserAdventures, joinAdventureInDb, subscribeToAdventure, updateAdventureData, deleteAdventure } from './services/dbService';
 
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
@@ -20,10 +20,8 @@ import {
 import { POKEMON_THEMES, INITIAL_FLIGHT_DATA, INITIAL_HOTELS, INITIAL_VOUCHERS, INITIAL_MEMBERS, POKE_CARD_STYLE, POKE_INPUT_STYLE, POKE_BTN_STYLE, DIGITAL_FONT_STYLE } from './constants';
 import { getDateStrFromDay, calculateLevelFromExp, getCityWeather } from './utils';
 
-// Helper for unique IDs
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
-// --- Login Component ---
 const LoginScreen: React.FC<{ onLogin: (user: User) => void }> = ({ onLogin }) => {
   const [name, setName] = useState('');
 
@@ -33,7 +31,6 @@ const LoginScreen: React.FC<{ onLogin: (user: User) => void }> = ({ onLogin }) =
     
     let userId;
     try {
-        // Use the trimmed name to generate ID, ensuring " Name " and "Name" result in the same account
         userId = btoa(encodeURIComponent(cleanName));
     } catch (e) {
         userId = 'user_' + Date.now();
@@ -54,7 +51,9 @@ const LoginScreen: React.FC<{ onLogin: (user: User) => void }> = ({ onLogin }) =
              <div className="w-20 h-20 bg-white border-2 border-black rounded-xl mx-auto flex items-center justify-center shadow-[4px_4px_0px_#000]">
                 <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" className="w-12 h-12" alt="Logo" />
              </div>
-             <h1 className="text-3xl font-black text-gray-800 tracking-tighter">ADVENTURE LOG</h1>
+             <h1 className="text-3xl font-black text-gray-800 tracking-tighter">
+                ADVENTURE LOG <span className="text-red-500 text-lg align-top">V2</span>
+             </h1>
              <p className="text-sm font-bold text-gray-500">請輸入訓練家名稱以開始</p>
           </div>
           
@@ -79,7 +78,6 @@ const LoginScreen: React.FC<{ onLogin: (user: User) => void }> = ({ onLogin }) =
   );
 };
 
-// --- Lobby Component ---
 interface LobbyScreenProps {
   user: User;
   onSelectAdventure: (id: string) => void;
@@ -95,7 +93,6 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
   const [isLoading, setIsLoading] = useState(false);
   const [dbError, setDbError] = useState<string | null>(null);
 
-  // Fetch adventures from Firebase
   const loadAdventures = async () => {
       setIsLoading(true);
       setDbError(null);
@@ -131,7 +128,6 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
       createdAt: new Date().toISOString()
     };
 
-    // Initialize default data
     const initialData = {
       tripSettings: { title: newTitle, subtitle: 'New Adventure', startDate: newAdv.startDate },
       totalDays: 5,
@@ -154,7 +150,7 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
     try {
         const success = await createAdventureInDb(newAdv, initialData);
         if (success) {
-            await loadAdventures(); // Refresh list
+            await loadAdventures(); 
             setMode('view');
             setNewTitle('');
             onSelectAdventure(newAdv.id);
@@ -182,6 +178,22 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
           alert("加入失敗：找不到此 ID 或資料庫連接錯誤");
       }
       setIsLoading(false);
+  };
+
+  const handleDelete = async (id: string, title: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!window.confirm(`確定要刪除旅程「${title}」嗎？\n刪除後所有成員將無法存取此旅程。`)) {
+          return;
+      }
+      setIsLoading(true);
+      try {
+          await deleteAdventure(id);
+          await loadAdventures();
+      } catch (e) {
+          setDbError("刪除失敗，請稍後再試。");
+      } finally {
+          setIsLoading(false);
+      }
   };
 
   const copyToClipboard = (text: string, e: React.MouseEvent) => {
@@ -214,7 +226,6 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
                 <button onClick={loadAdventures} disabled={isLoading} className="text-gray-400 hover:text-black active:rotate-180 transition-all"><RefreshCw size={16}/></button>
             </h3>
             
-            {/* Error Banner */}
             {dbError && (
                 <div className="mb-4 bg-red-50 border-2 border-red-500 rounded-xl p-3 flex items-start text-red-700 animate-in slide-in-from-top-2">
                     <AlertTriangle size={20} className="mr-2 flex-shrink-0 mt-0.5" />
@@ -298,14 +309,21 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
                     </div>
                   </button>
 
-                  {/* ID Copy Button */}
-                  <div className="absolute top-2 right-2">
+                  <div className="absolute top-2 right-2 flex space-x-1">
                       <button 
                         onClick={(e) => copyToClipboard(adv.id, e)}
                         className="bg-white/90 backdrop-blur border border-black rounded px-2 py-1 text-[10px] font-bold flex items-center hover:bg-gray-100 active:scale-95"
+                        title="Copy ID"
                       >
                          {copiedId === adv.id ? <Check size={10} className="mr-1 text-green-600"/> : <Copy size={10} className="mr-1"/>}
-                         ID: {adv.id}
+                         ID
+                      </button>
+                      <button 
+                        onClick={(e) => handleDelete(adv.id, adv.title, e)}
+                        className="bg-white/90 backdrop-blur border border-black rounded px-2 py-1 text-[10px] font-bold flex items-center text-red-600 hover:bg-red-50 active:scale-95"
+                        title="Delete Adventure"
+                      >
+                         <Trash2 size={10} />
                       </button>
                   </div>
                </div>
@@ -316,7 +334,6 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
   );
 };
 
-// --- Adventure Board ---
 interface AdventureBoardProps {
   user: User;
   adventureId: string;
@@ -329,7 +346,6 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
   const [totalDays, setTotalDays] = useState(5);
   const [loading, setLoading] = useState(true);
 
-  // Data State
   const [tripSettings, setTripSettings] = useState<TripSettings>({ title: '', subtitle: '', startDate: '' });
   const [flightData, setFlightData] = useState<FlightData>(INITIAL_FLIGHT_DATA);
   const [events, setEvents] = useState<ItineraryEvent[]>([]);
@@ -339,7 +355,6 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
   const [members, setMembers] = useState<Member[]>(INITIAL_MEMBERS);
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
 
-  // Modals
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showWeatherModal, setShowWeatherModal] = useState(false);
   const [showEventModal, setShowEventModal] = useState(false);
@@ -351,7 +366,6 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
   
   const [viewingQR, setViewingQR] = useState<{image: string, title: string} | null>(null);
 
-  // Editing State
   const [currentEvent, setCurrentEvent] = useState<ItineraryEvent | null>(null);
   const [isEditingEvent, setIsEditingEvent] = useState(false);
   const [editingFlightDirection, setEditingFlightDirection] = useState<'outbound' | 'inbound'>('outbound');
@@ -364,7 +378,6 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
   const currentDayEvents = events.filter(e => e.date === getDateStrFromDay(activeDay, tripSettings.startDate));
   const currentWeather = getCityWeather(activeDay, currentDayEvents);
 
-  // Real-time Subscription to Firebase
   useEffect(() => {
       setLoading(true);
       const unsubscribe = subscribeToAdventure(adventureId, (data) => {
@@ -383,9 +396,6 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
       return () => unsubscribe();
   }, [adventureId]);
 
-  // Helper to save current state to DB
-  // NOTE: In a more complex app, we would save only partial updates. 
-  // For simplicity here, we save the whole state blob when a major action completes.
   const saveToDb = async (overrides: Partial<any> = {}) => {
       const dataToSave = {
           tripSettings,
@@ -397,7 +407,7 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
           vouchers,
           members,
           journalEntries,
-          ...overrides // Allow overriding state that hasn't updated yet in the closure
+          ...overrides
       };
       await updateAdventureData(adventureId, dataToSave);
   };
@@ -525,7 +535,6 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
     const newEntries = [{ ...entry, id: generateId() }, ...journalEntries];
     setJournalEntries(newEntries);
     
-    // XP Logic
     let newMembers = members;
     if (entry.authorId) { 
         newMembers = members.map(m => { 
@@ -580,7 +589,6 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
 
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} currentTheme={currentTheme} />
 
-      {/* Modals Injection */}
       {showWeatherModal && <WeatherModal weather={currentWeather} onClose={() => setShowWeatherModal(false)} />}
       {showSettingsModal && <SettingsModal settings={tripSettings} totalDays={totalDays} adventureId={adventureId} onClose={() => setShowSettingsModal(false)} onSave={handleSaveSettings} />}
       {showEventModal && currentEvent && <EventModal event={currentEvent} isEditing={isEditingEvent} currentTheme={currentTheme} onClose={() => setShowEventModal(false)} onSave={handleSaveEvent} />}
@@ -594,7 +602,6 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
   );
 };
 
-// --- App Root ---
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [currentAdventureId, setCurrentAdventureId] = useState<string | null>(null);

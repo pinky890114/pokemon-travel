@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Calculator, ArrowDown, ArrowRight, Scale, Coins, Wallet } from 'lucide-react';
 import { Expense, Theme, Member } from '../types';
@@ -17,20 +18,15 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ currentTheme, expenses, 
   const [payer, setPayer] = useState(members[0]?.id || '');
   const [calcValues, setCalcValues] = useState({ chf: '', eur: '', twd: '' });
 
-  // Single Foreign Input State
   const [selectedCurrency, setSelectedCurrency] = useState<'CHF' | 'EUR'>('CHF');
   const [foreignAmount, setForeignAmount] = useState('');
   
   const RATES = { CHF: 36.5, EUR: 34.2 };
 
-  // --- Calculation Logic for Settlement ---
   const settlementData = useMemo(() => {
     const totalExpense = expenses.reduce((sum, e) => sum + e.amount, 0);
     const averageExpense = totalExpense / (members.length || 1);
 
-    // 1. Calculate Balance for each member
-    // Paid: How much they actually paid
-    // Balance: Paid - Average (Positive = They are owed money; Negative = They owe money)
     const memberBalances = members.map(m => {
         const paid = expenses.filter(e => e.payer === m.id).reduce((sum, e) => sum + e.amount, 0);
         return {
@@ -38,27 +34,23 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ currentTheme, expenses, 
             paid,
             balance: paid - averageExpense
         };
-    }).sort((a, b) => b.balance - a.balance); // Sort by balance descending
+    }).sort((a, b) => b.balance - a.balance); 
 
-    // 2. Generate Transfer Plan (Greedy Algorithm)
     const transfers: { from: string; fromImg: string; to: string; toImg: string; amount: number }[] = [];
     
-    // Deep copy to mutate during calculation
-    let debtors = memberBalances.filter(m => m.balance < -1).map(m => ({ ...m })); // Filter out negligible amounts
+    let debtors = memberBalances.filter(m => m.balance < -1).map(m => ({ ...m }));
     let creditors = memberBalances.filter(m => m.balance > 1).map(m => ({ ...m }));
     
-    // Sort: Debtors (ascending, most negative first), Creditors (descending, most positive first)
     debtors.sort((a, b) => a.balance - b.balance);
     creditors.sort((a, b) => b.balance - a.balance);
 
-    let i = 0; // debtor index
-    let j = 0; // creditor index
+    let i = 0;
+    let j = 0; 
 
     while (i < debtors.length && j < creditors.length) {
         let debtor = debtors[i];
         let creditor = creditors[j];
 
-        // The amount to settle is the minimum of what debtor owes and creditor is owed
         let amount = Math.min(Math.abs(debtor.balance), creditor.balance);
         
         if (amount > 0) {
@@ -71,11 +63,9 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ currentTheme, expenses, 
             });
         }
 
-        // Update balances
         debtor.balance += amount;
         creditor.balance -= amount;
 
-        // Move indices if settled
         if (Math.abs(debtor.balance) < 1) i++;
         if (creditor.balance < 1) j++;
     }
@@ -137,7 +127,6 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ currentTheme, expenses, 
 
   return (
     <div className="px-6 space-y-4 pb-40 animate-in fade-in">
-       {/* Calculator (Only show in Input mode to save space) */}
        {ledgerMode === 'input' && (
         <div className={`${POKE_CARD_STYLE} p-4 bg-[#FFFBEB]`}>
             <div className="flex items-center space-x-2 text-gray-800 mb-3 font-bold border-b-2 border-black pb-2 uppercase tracking-widest"><Calculator size={16} /><span className="text-xs">Calculator</span></div>
@@ -227,9 +216,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ currentTheme, expenses, 
            })}
         </div>
       ) : (
-        // --- Settlement View ---
         <div className="space-y-4">
-            {/* Overview Card */}
             <div className={`${POKE_CARD_STYLE} p-4 bg-white`}>
                 <div className="flex justify-between items-center mb-4 pb-2 border-b-2 border-dashed border-gray-200">
                     <span className="text-xs font-black text-gray-500 uppercase">Total Expense</span>
@@ -241,7 +228,6 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ currentTheme, expenses, 
                 </div>
             </div>
 
-            {/* Individual Balances */}
             <div className="grid grid-cols-1 gap-2">
                 {settlementData.memberBalances.map(m => (
                     <div key={m.id} className={`${POKE_CARD_STYLE} p-2 flex items-center justify-between`}>
@@ -259,7 +245,6 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ currentTheme, expenses, 
                 ))}
             </div>
 
-            {/* Suggested Transfers */}
             {settlementData.transfers.length > 0 && (
                 <div className="relative">
                      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-t-2 border-black border-dashed -z-10"></div>

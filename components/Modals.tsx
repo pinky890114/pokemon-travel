@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { X, Sun, Plus, Minus, Trash2, Upload, Ticket, QrCode, Check, Camera, Copy } from 'lucide-react';
+import { X, Sun, Plus, Minus, Trash2, Upload, Ticket, QrCode, Check, Camera, Copy, Key } from 'lucide-react';
 import { POKE_CARD_STYLE, POKE_INPUT_STYLE, POKE_BTN_STYLE, DIGITAL_FONT_STYLE, POKEMON_THEMES } from '../constants';
 import { TripSettings, ItineraryEvent, FlightSegment, Theme, Hotel, Voucher, Member, JournalEntry, WeatherInfo } from '../types';
 import { getPokemonSprite, compressImage } from '../utils';
@@ -17,7 +17,6 @@ export const WeatherModal: React.FC<{ weather: WeatherInfo; onClose: () => void 
           <div className="space-y-2">
              {[...Array(12)].map((_, i) => {
                 const hour = 9 + i;
-                // Simulate hourly temp curve (peak at 14:00)
                 const peakHour = 14;
                 const hourDiff = Math.abs(hour - peakHour);
                 let simTemp = Math.round(weather.maxTemp - (hourDiff * 0.8));

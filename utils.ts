@@ -4,19 +4,11 @@ import { ItineraryEvent, WeatherInfo } from "./types";
 
 export const getPokemonSprite = (id: number) => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
 
-// Level progression: Lv 1 requires 0 exp.
-// Lv 2 requires 1 exp (1 post).
-// Lv 3 requires 1+2=3 exp.
-// Lv 4 requires 1+2+3=6 exp.
-// Formula: Level L requires (L-1)*L / 2 EXP.
-// Inverse: Level = floor((1 + sqrt(1 + 8*exp)) / 2)
 export const calculateLevelFromExp = (exp: number) => {
     return Math.floor((1 + Math.sqrt(1 + 8 * exp)) / 2);
 };
 
 export const getExpForNextLevel = (currentLevel: number) => {
-    // Exp needed to reach next level (currentLevel + 1)
-    // Formula: Sum of integers from 1 to currentLevel
     return (currentLevel * (currentLevel + 1)) / 2;
 };
 
@@ -125,7 +117,6 @@ export const compressImage = (file: File, maxWidth = 800, quality = 0.6): Promis
             return;
         }
         ctx.drawImage(img, 0, 0, width, height);
-        // Compress to JPEG with reduced quality
         resolve(canvas.toDataURL('image/jpeg', quality));
       };
       img.onerror = (err) => reject(err);
