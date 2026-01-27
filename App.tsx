@@ -28,19 +28,21 @@ const LoginScreen: React.FC<{ onLogin: (user: User) => void }> = ({ onLogin }) =
   const [name, setName] = useState('');
 
   const handleLogin = () => {
-    if (!name.trim()) return;
+    const cleanName = name.trim();
+    if (!cleanName) return;
     
     let userId;
     try {
-        userId = btoa(encodeURIComponent(name));
+        // Use the trimmed name to generate ID, ensuring " Name " and "Name" result in the same account
+        userId = btoa(encodeURIComponent(cleanName));
     } catch (e) {
         userId = 'user_' + Date.now();
     }
 
     const user: User = {
       id: userId,
-      name: name,
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`
+      name: cleanName,
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(cleanName)}`
     };
     onLogin(user);
   };
@@ -68,6 +70,9 @@ const LoginScreen: React.FC<{ onLogin: (user: User) => void }> = ({ onLogin }) =
              <button onClick={handleLogin} className={`w-full bg-[#3B4CCA] text-white py-3 font-black text-lg ${POKE_BTN_STYLE}`}>
                 START GAME
              </button>
+             <p className="text-[10px] text-center text-gray-400 font-bold">
+                提示：切換瀏覽器時，輸入<span className="text-red-500">完全相同</span>的名字即可存取舊資料。
+             </p>
           </div>
        </div>
     </div>
@@ -194,7 +199,8 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
                <img src={user.avatar} className="w-12 h-12 rounded-full border-2 border-black bg-white" alt="avatar" />
                <div>
                   <div className="text-[10px] font-bold text-gray-500 uppercase">Welcome back</div>
-                  <h2 className="text-xl font-black">{user.name}</h2>
+                  <h2 className="text-xl font-black leading-none">{user.name}</h2>
+                  <div className="text-[9px] text-gray-400 font-mono mt-1 select-all" title="Your User ID">#{user.id.substring(0, 8)}...</div>
                </div>
             </div>
             <button onClick={onLogout} className="bg-red-100 text-red-600 p-2 rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] active:translate-y-[1px] active:shadow-none">
