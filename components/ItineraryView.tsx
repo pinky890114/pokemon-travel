@@ -196,7 +196,17 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
                             <span className="font-black text-gray-800 text-lg leading-tight">{item.title}</span>
-                            {item.location && <div className="text-xs font-bold text-blue-600 flex items-center mt-1"><MapPin size={12} className="mr-1"/>{item.location}</div>}
+                            {item.location && (
+                                <a 
+                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.location)}`}
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="text-xs font-bold text-blue-600 flex items-center mt-1 hover:text-blue-800 hover:underline w-fit"
+                                >
+                                    <MapPin size={12} className="mr-1"/>{item.location}
+                                </a>
+                            )}
                             {item.notes && <div className="mt-2 text-[10px] text-gray-500 bg-yellow-50 p-2 rounded border border-yellow-200 flex items-start"><StickyNote size={10} className="mr-1 mt-0.5" />{item.notes}</div>}
                           </div>
                           <button onClick={(e) => onDeleteEvent(item.id!, e)} className="text-gray-300 hover:text-red-500"><Trash2 size={16} /></button>

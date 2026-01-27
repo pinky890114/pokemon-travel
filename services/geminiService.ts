@@ -43,9 +43,13 @@ export const translateText = async (text: string, mode: 'to_zh' | 'to_de' | 'to_
       model: 'gemini-3-flash-preview',
       contents: prompt
     });
-    return response.text || "翻譯失敗";
-  } catch (error) {
+    return response.text || "翻譯結果為空";
+  } catch (error: any) {
     console.error("Translation Error:", error);
-    return "連線錯誤，無法翻譯";
+    // Return the actual error message so it can be displayed in the UI
+    let msg = error.message || "未知錯誤";
+    if (msg.includes("403")) msg = "API Key 權限不足或額度已滿";
+    if (msg.includes("Failed to fetch")) msg = "網路連線失敗";
+    return `[系統] 翻譯失敗: ${msg}`;
   }
 };

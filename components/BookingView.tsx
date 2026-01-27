@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Plane, Home, QrCode, Edit3, ArrowDownCircle, Clock, Luggage, MapPin, Plus, StickyNote, Calendar, Ticket, Languages, Sparkles, Loader2, Copy } from 'lucide-react';
 import { FlightData, Hotel, Theme, Voucher } from '../types';
 import { POKE_CARD_STYLE, DIGITAL_FONT_STYLE, POKE_INPUT_STYLE, POKE_BTN_STYLE } from '../constants';
@@ -25,15 +25,36 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
   const [translationResult, setTranslationResult] = useState('');
   const [translationLoading, setTranslationLoading] = useState(false);
   const [transMode, setTransMode] = useState<'to_zh' | 'to_de' | 'to_it'>('to_zh');
+  
+  const resultRef = useRef<HTMLDivElement>(null);
 
   const handleTranslate = async () => {
     if (!translationInput.trim()) return;
+    
+    // Dismiss keyboard on mobile
+    if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+    }
+
     setTranslationLoading(true);
     setTranslationResult(''); // Clear previous
-    const result = await translateText(translationInput, transMode);
-    setTranslationResult(result);
-    setTranslationLoading(false);
+    
+    try {
+        const result = await translateText(translationInput, transMode);
+        setTranslationResult(result);
+    } catch (e) {
+        setTranslationResult("發生未預期的錯誤");
+    } finally {
+        setTranslationLoading(false);
+    }
   };
+
+  // Scroll to result when it appears
+  useEffect(() => {
+    if (translationResult && resultRef.current) {
+        resultRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [translationResult]);
 
   return (
     <div className="px-6 space-y-6 pb-40 animate-in fade-in">
@@ -244,9 +265,10 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
                 className={`w-full h-32 p-3 resize-none text-sm font-bold ${POKE_INPUT_STYLE}`}
               />
               <button 
+                type="button"
                 onClick={handleTranslate} 
                 disabled={translationLoading || !translationInput}
-                className={`w-full py-3 ${currentTheme.color} text-white font-black rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] active:translate-y-[1px] active:shadow-none flex justify-center items-center disabled:opacity-50 disabled:active:translate-y-0 disabled:active:shadow-[3px_3px_0px_#000]`}
+                className={`w-full py-3 ${currentTheme.color} text-white font-black rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] active:translate-y-[1px] active:shadow-none flex justify-center items-center disabled:opacity-50 disabled:active:translate-y-0 disabled:active:shadow-[3px_3px_0px_#000] cursor-pointer`}
               >
                 {translationLoading ? <Loader2 className="animate-spin" size={18}/> : <><Sparkles size={16} className="mr-2"/> 開始翻譯</>}
               </button>
@@ -254,7 +276,7 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
 
            {/* Result Card */}
            {(translationResult || translationLoading) && (
-              <div className={`${POKE_CARD_STYLE} p-4 bg-[#FFF9C4] relative min-h-[100px] animate-in slide-in-from-bottom-2`}>
+              <div ref={resultRef} className={`${POKE_CARD_STYLE} p-4 bg-[#FFF9C4] relative min-h-[100px] animate-in slide-in-from-bottom-2`}>
                  <div className="absolute top-0 left-0 bg-black text-white px-2 py-0.5 text-[10px] font-bold rounded-br-lg">RESULT</div>
                  {translationLoading ? (
                     <div className="h-full flex items-center justify-center pt-8 pb-4">
@@ -262,7 +284,7 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
                     </div>
                  ) : (
                     <div className="pt-6">
-                        <p className={`text-lg font-black text-gray-800 leading-relaxed`}>{translationResult}</p>
+                        <p className={`text-lg font-black text-gray-800 leading-relaxed break-all`}>{translationResult}</p>
                         <div className="mt-4 flex justify-end">
                             <button onClick={() => navigator.clipboard.writeText(translationResult)} className="text-xs font-bold text-yellow-800 flex items-center bg-yellow-200 px-2 py-1 rounded border border-yellow-400 active:scale-95 shadow-sm hover:bg-yellow-100 transition-colors">
                                 <Copy size={12} className="mr-1"/> 複製
