@@ -1,7 +1,9 @@
+
 import React, { useState } from 'react';
-import { Plane, Home, QrCode, Edit3, ArrowDownCircle, Clock, Luggage, MapPin, Plus, StickyNote, Calendar, Ticket } from 'lucide-react';
+import { Plane, Home, QrCode, Edit3, ArrowDownCircle, Clock, Luggage, MapPin, Plus, StickyNote, Calendar, Ticket, Languages, Sparkles, Loader2, Copy } from 'lucide-react';
 import { FlightData, Hotel, Theme, Voucher } from '../types';
-import { POKE_CARD_STYLE, DIGITAL_FONT_STYLE } from '../constants';
+import { POKE_CARD_STYLE, DIGITAL_FONT_STYLE, POKE_INPUT_STYLE, POKE_BTN_STYLE } from '../constants';
+import { translateText } from '../geminiService';
 
 interface BookingViewProps {
   currentTheme: Theme;
@@ -15,19 +17,35 @@ interface BookingViewProps {
 }
 
 export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightData, hotels = [], vouchers = [], onEditFlights, onOpenHotelModal, onOpenVoucherModal, onShowQR }) => {
-  const [bookingTab, setBookingTab] = useState<'flight' | 'hotel' | 'ticket'>('flight');
+  const [bookingTab, setBookingTab] = useState<'flight' | 'hotel' | 'ticket' | 'translator'>('flight');
   const [flightDirection, setFlightDirection] = useState<'outbound' | 'inbound'>('outbound');
+
+  // Translator State
+  const [translationInput, setTranslationInput] = useState('');
+  const [translationResult, setTranslationResult] = useState('');
+  const [translationLoading, setTranslationLoading] = useState(false);
+  const [transMode, setTransMode] = useState<'to_zh' | 'to_de' | 'to_it'>('to_zh');
+
+  const handleTranslate = async () => {
+    if (!translationInput.trim()) return;
+    setTranslationLoading(true);
+    setTranslationResult(''); // Clear previous
+    const result = await translateText(translationInput, transMode);
+    setTranslationResult(result);
+    setTranslationLoading(false);
+  };
 
   return (
     <div className="px-6 space-y-6 pb-40 animate-in fade-in">
-      <div className="flex bg-white/50 p-2 rounded-xl border-2 border-black/10">
+      <div className="flex bg-white/50 p-2 rounded-xl border-2 border-black/10 overflow-x-auto no-scrollbar">
         {[
           { id: 'flight', label: '機票', icon: Plane }, 
           { id: 'hotel', label: '住宿', icon: Home }, 
-          { id: 'ticket', label: '憑證', icon: QrCode }
+          { id: 'ticket', label: '憑證', icon: QrCode },
+          { id: 'translator', label: '翻譯', icon: Languages }
         ].map(t => (
-          <button key={t.id} onClick={() => setBookingTab(t.id as any)} className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold flex items-center justify-center transition-all ${bookingTab === t.id ? `${currentTheme.color} text-white border-2 border-black` : 'text-gray-500'}`}>
-            <t.icon size={14} className="mr-2" />{t.label}
+          <button key={t.id} onClick={() => setBookingTab(t.id as any)} className={`flex-1 min-w-[80px] py-2 px-2 rounded-lg text-sm font-bold flex items-center justify-center transition-all whitespace-nowrap ${bookingTab === t.id ? `${currentTheme.color} text-white border-2 border-black shadow-sm` : 'text-gray-500'}`}>
+            <t.icon size={14} className="mr-1.5" />{t.label}
           </button>
         ))}
       </div>
@@ -91,19 +109,13 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
           </div>
           {hotels.map((h, i) => (
              <button key={h.id} onClick={() => onOpenHotelModal && onOpenHotelModal(h)} className={`${POKE_CARD_STYLE} flex overflow-hidden w-full text-left active:scale-[0.98] transition-transform`}>
-                
-                {/* Location Strip on Far Left */}
                 <div className="w-10 bg-gray-800 border-r-2 border-black flex items-center justify-center flex-shrink-0 overflow-hidden">
                    <span className="text-white font-black text-xs tracking-widest uppercase [writing-mode:vertical-rl] rotate-180 py-2 truncate max-h-[140px]">
                       {h.location.split(',')[0]}
                    </span>
                 </div>
-
-                {/* Image Removed for better mobile visibility */}
-                
                 <div className="p-3 flex-1 flex flex-col justify-center min-w-0">
                    <h4 className="font-black text-gray-800 leading-tight text-lg mb-1 truncate">{h.name}</h4>
-                   
                    <a 
                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(h.location)}`}
                      target="_blank" 
@@ -113,8 +125,6 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
                    >
                      <MapPin size={10} className="mr-1 flex-shrink-0"/>{h.location}
                    </a>
-
-                   {/* Date Info */}
                    <div className="flex items-center gap-2 mb-2 w-full">
                        <div className="flex-1 bg-gray-50 border border-gray-200 rounded px-1.5 py-1 flex flex-col items-center">
                            <span className="text-[9px] font-bold text-gray-400 leading-none mb-0.5">CHECK-IN</span>
@@ -126,7 +136,6 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
                            <span className={`text-xs font-black text-gray-700 ${DIGITAL_FONT_STYLE} leading-none`}>{h.checkOut?.replace(/-/g, '/') || '--/--/--'}</span>
                        </div>
                    </div>
-
                    {h.bookingCode && (
                      <div className="inline-flex items-center text-[10px] bg-gray-100 px-2 py-1 rounded border border-gray-300 font-mono font-bold text-black self-start mb-2">
                         {h.bookingCode}
@@ -158,12 +167,9 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
           </div>
           {vouchers.map(v => (
              <button key={v.id} onClick={() => onOpenVoucherModal && onOpenVoucherModal(v)} className={`${POKE_CARD_STYLE} flex overflow-hidden w-full text-left active:scale-[0.98] transition-transform`}>
-                
-                {/* Barcode Strip on Left */}
                 <div className="w-8 bg-gray-100 border-r-2 border-black border-dashed flex flex-col items-center justify-center p-1 relative">
                    <div className="absolute inset-y-2 left-1/2 -translate-x-1/2 w-1 border-x-2 border-dashed border-gray-300"></div>
                 </div>
-
                 <div className="p-3 flex-1">
                    <div className="flex justify-between items-start mb-2">
                       <div>
@@ -189,19 +195,16 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
                          <QrCode size={28} />
                       </button>
                    </div>
-                   
                    <div className="bg-gray-50 border-2 border-gray-200 rounded p-2 mb-2 font-mono">
                       <div className="text-[9px] text-gray-400 font-bold">REFERENCE NO.</div>
                       <div className="text-sm font-black text-gray-800 tracking-wider">{v.referenceNo}</div>
                    </div>
-
                    <div className="flex gap-4 mb-2">
                       <div>
                          <div className="text-[9px] text-gray-400 font-bold">DATE</div>
                          <div className={`text-sm font-black text-gray-800 ${DIGITAL_FONT_STYLE}`}>{v.date?.replace(/-/g, '/') || '--/--'}</div>
                       </div>
                    </div>
-
                    {v.notes && (
                       <div className="text-[10px] text-gray-500 border-t border-dashed border-gray-300 pt-2 flex items-start">
                         <StickyNote size={10} className="mr-1 mt-0.5 flex-shrink-0"/>
@@ -216,6 +219,59 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
               背包裡空空如也...
             </div>
           )}
+        </div>
+      )}
+
+      {bookingTab === 'translator' && (
+        <div className="space-y-4">
+           {/* Mode Selection */}
+           <div className="flex bg-gray-100 p-1 rounded-lg border-2 border-gray-200 overflow-x-auto no-scrollbar">
+              <button onClick={() => setTransMode('to_zh')} className={`flex-1 min-w-[80px] py-2 text-[10px] font-black rounded transition-all whitespace-nowrap ${transMode === 'to_zh' ? 'bg-white shadow-sm text-black' : 'text-gray-400'}`}>德/義 → 中</button>
+              <button onClick={() => setTransMode('to_de')} className={`flex-1 min-w-[80px] py-2 text-[10px] font-black rounded transition-all whitespace-nowrap ${transMode === 'to_de' ? 'bg-white shadow-sm text-black' : 'text-gray-400'}`}>中 → 德文</button>
+              <button onClick={() => setTransMode('to_it')} className={`flex-1 min-w-[80px] py-2 text-[10px] font-black rounded transition-all whitespace-nowrap ${transMode === 'to_it' ? 'bg-white shadow-sm text-black' : 'text-gray-400'}`}>中 → 義大利</button>
+           </div>
+
+           {/* Input Card */}
+           <div className={`${POKE_CARD_STYLE} p-4 bg-white space-y-3`}>
+              <div className="flex justify-between items-center mb-1">
+                 <label className="text-xs font-black text-gray-500 uppercase">Input Text</label>
+                 <button onClick={() => setTranslationInput('')} className="text-[10px] text-red-400 font-bold hover:text-red-600">CLEAR</button>
+              </div>
+              <textarea 
+                value={translationInput}
+                onChange={(e) => setTranslationInput(e.target.value)}
+                placeholder={transMode === 'to_zh' ? "輸入德文或義大利文..." : "輸入中文..."}
+                className={`w-full h-32 p-3 resize-none text-sm font-bold ${POKE_INPUT_STYLE}`}
+              />
+              <button 
+                onClick={handleTranslate} 
+                disabled={translationLoading || !translationInput}
+                className={`w-full py-3 ${currentTheme.color} text-white font-black rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] active:translate-y-[1px] active:shadow-none flex justify-center items-center disabled:opacity-50 disabled:active:translate-y-0 disabled:active:shadow-[3px_3px_0px_#000]`}
+              >
+                {translationLoading ? <Loader2 className="animate-spin" size={18}/> : <><Sparkles size={16} className="mr-2"/> 開始翻譯</>}
+              </button>
+           </div>
+
+           {/* Result Card */}
+           {(translationResult || translationLoading) && (
+              <div className={`${POKE_CARD_STYLE} p-4 bg-[#FFF9C4] relative min-h-[100px] animate-in slide-in-from-bottom-2`}>
+                 <div className="absolute top-0 left-0 bg-black text-white px-2 py-0.5 text-[10px] font-bold rounded-br-lg">RESULT</div>
+                 {translationLoading ? (
+                    <div className="h-full flex items-center justify-center pt-8 pb-4">
+                        <span className="text-xs font-bold text-yellow-700 animate-pulse flex items-center"><Loader2 size={12} className="animate-spin mr-2"/>正在解讀語言...</span>
+                    </div>
+                 ) : (
+                    <div className="pt-6">
+                        <p className={`text-lg font-black text-gray-800 leading-relaxed`}>{translationResult}</p>
+                        <div className="mt-4 flex justify-end">
+                            <button onClick={() => navigator.clipboard.writeText(translationResult)} className="text-xs font-bold text-yellow-800 flex items-center bg-yellow-200 px-2 py-1 rounded border border-yellow-400 active:scale-95 shadow-sm hover:bg-yellow-100 transition-colors">
+                                <Copy size={12} className="mr-1"/> 複製
+                            </button>
+                        </div>
+                    </div>
+                 )}
+              </div>
+           )}
         </div>
       )}
     </div>

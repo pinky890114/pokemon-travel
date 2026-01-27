@@ -27,3 +27,25 @@ export const generateTransportSuggestion = async (start: string, end: string): P
     return "train|??m|連線失敗";
   }
 };
+
+export const translateText = async (text: string, mode: 'to_zh' | 'to_de' | 'to_it'): Promise<string> => {
+  let prompt = "";
+  if (mode === 'to_zh') {
+    prompt = `Translate the following text (which is likely German or Italian) into Traditional Chinese (Taiwan). Only return the translated text. Text: "${text}"`;
+  } else if (mode === 'to_de') {
+    prompt = `Translate the following Chinese text into German. Only return the translated text. Text: "${text}"`;
+  } else if (mode === 'to_it') {
+    prompt = `Translate the following Chinese text into Italian. Only return the translated text. Text: "${text}"`;
+  }
+
+  try {
+     const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt
+    });
+    return response.text || "翻譯失敗";
+  } catch (error) {
+    console.error("Translation Error:", error);
+    return "連線錯誤，無法翻譯";
+  }
+};
