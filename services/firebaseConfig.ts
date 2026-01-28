@@ -14,11 +14,11 @@ const getEnv = (key: string): string => {
 
 const FALLBACK_CONFIG = {
   apiKey: "AIzaSyDggUqxXmEd8qGcMmoFLmim7pfzaiPU4xY",
-  authDomain: "pokemon-travel-v2.firebaseapp.com",
-  projectId: "pokemon-travel-v2",
-  storageBucket: "pokemon-travel-v2.firebasestorage.app",
-  messagingSenderId: "208103149031",
-  appId: "1:915110641546:web:f5a25a90c0bd6906fd1273"
+  authDomain: "poke-log-v2.firebaseapp.com",
+  projectId: "poke-log-v2",
+  storageBucket: "poke-log-v2.firebasestorage.app",
+  messagingSenderId: 208103149031,
+  appId: "1:208103149031::08741662388142"
 };
 
 const apiKey = getEnv('VITE_FIREBASE_API_KEY') || FALLBACK_CONFIG.apiKey;
