@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Calculator, ArrowDown, ArrowRight, Scale, Coins, Wallet } from 'lucide-react';
+import { Calculator, ArrowDown, PieChart, Coffee, Bed, Bus, Shirt, Gift } from 'lucide-react';
 import { Expense, Theme, Member } from '../types';
 import { POKE_CARD_STYLE, POKE_INPUT_STYLE, POKE_BTN_STYLE, DIGITAL_FONT_STYLE } from '../constants';
 
@@ -8,14 +8,22 @@ interface LedgerViewProps {
   currentTheme: Theme;
   expenses: Expense[];
   members: Member[];
-  onAddExpense: (amount: number, item: string, payer: string) => void;
+  onAddExpense: (amount: number, item: string, payer: string, category: string) => void;
 }
 
+const CATEGORIES = [
+  { id: 'food', label: '飲食', icon: Coffee, color: '#F59E0B', bg: 'bg-amber-500' },
+  { id: 'stay', label: '住宿', icon: Bed, color: '#3B82F6', bg: 'bg-blue-500' },
+  { id: 'transport', label: '交通', icon: Bus, color: '#10B981', bg: 'bg-emerald-500' },
+  { id: 'wear', label: '穿搭', icon: Shirt, color: '#EC4899', bg: 'bg-pink-500' },
+  { id: 'gift', label: '紀念品', icon: Gift, color: '#EF4444', bg: 'bg-red-500' },
+];
+
 export const LedgerView: React.FC<LedgerViewProps> = ({ currentTheme, expenses, members, onAddExpense }) => {
-  const [ledgerMode, setLedgerMode] = useState<'input' | 'detail' | 'settle'>('input');
+  const [ledgerMode, setLedgerMode] = useState<'input' | 'detail' | 'stats'>('input');
   const [amount, setAmount] = useState('');
   const [item, setItem] = useState('');
-  const [payer, setPayer] = useState(members[0]?.id || '');
+  const [selectedCategory, setSelectedCategory] = useState(CATEGORIES[0].id);
   const [calcValues, setCalcValues] = useState({ chf: '', eur: '', twd: '' });
 
   const [selectedCurrency, setSelectedCurrency] = useState<'CHF' | 'EUR'>('CHF');
@@ -23,55 +31,35 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ currentTheme, expenses, 
   
   const RATES = { CHF: 36.5, EUR: 34.2 };
 
-  const settlementData = useMemo(() => {
+  const statsData = useMemo(() => {
     const totalExpense = expenses.reduce((sum, e) => sum + e.amount, 0);
-    const averageExpense = totalExpense / (members.length || 1);
-
-    const memberBalances = members.map(m => {
-        const paid = expenses.filter(e => e.payer === m.id).reduce((sum, e) => sum + e.amount, 0);
+    
+    const catStats = CATEGORIES.map(cat => {
+        const catTotal = expenses
+            .filter(e => e.category === cat.id)
+            .reduce((sum, e) => sum + e.amount, 0);
         return {
-            ...m,
-            paid,
-            balance: paid - averageExpense
+            ...cat,
+            total: catTotal,
+            percentage: totalExpense > 0 ? (catTotal / totalExpense) * 100 : 0
         };
-    }).sort((a, b) => b.balance - a.balance); 
+    }).sort((a, b) => b.total - a.total);
 
-    const transfers: { from: string; fromImg: string; to: string; toImg: string; amount: number }[] = [];
+    // Calculate conic gradient string
+    let currentDeg = 0;
+    const gradientParts = catStats.map(cat => {
+        const deg = (cat.percentage / 100) * 360;
+        const part = `${cat.color} ${currentDeg}deg ${currentDeg + deg}deg`;
+        currentDeg += deg;
+        return part;
+    });
     
-    let debtors = memberBalances.filter(m => m.balance < -1).map(m => ({ ...m }));
-    let creditors = memberBalances.filter(m => m.balance > 1).map(m => ({ ...m }));
-    
-    debtors.sort((a, b) => a.balance - b.balance);
-    creditors.sort((a, b) => b.balance - a.balance);
+    const gradientString = totalExpense > 0 
+        ? `conic-gradient(${gradientParts.join(', ')})`
+        : 'conic-gradient(#e5e7eb 0deg 360deg)';
 
-    let i = 0;
-    let j = 0; 
-
-    while (i < debtors.length && j < creditors.length) {
-        let debtor = debtors[i];
-        let creditor = creditors[j];
-
-        let amount = Math.min(Math.abs(debtor.balance), creditor.balance);
-        
-        if (amount > 0) {
-            transfers.push({
-                from: debtor.name,
-                fromImg: debtor.img,
-                to: creditor.name,
-                toImg: creditor.img,
-                amount: Math.round(amount)
-            });
-        }
-
-        debtor.balance += amount;
-        creditor.balance -= amount;
-
-        if (Math.abs(debtor.balance) < 1) i++;
-        if (creditor.balance < 1) j++;
-    }
-
-    return { totalExpense, averageExpense, memberBalances, transfers };
-  }, [expenses, members]);
+    return { totalExpense, catStats, gradientString };
+  }, [expenses]);
 
 
   const handleCalcChange = (curr: 'chf' | 'eur' | 'twd', val: string) => {
@@ -118,7 +106,9 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ currentTheme, expenses, 
 
   const handleSubmit = () => {
     if (!amount || !item) return;
-    onAddExpense(Number(amount), item, payer);
+    // Default payer to first member as "Current User" since we hid the selector
+    const payerId = members[0]?.id || 'unknown';
+    onAddExpense(Number(amount), item, payerId, selectedCategory);
     setAmount('');
     setItem('');
     setForeignAmount('');
@@ -144,8 +134,8 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ currentTheme, expenses, 
       <div className="flex bg-white/50 p-2 rounded-xl border-2 border-black/10">
         <button onClick={() => setLedgerMode('input')} className={`flex-1 py-1.5 text-xs font-black rounded-lg transition-all ${ledgerMode === 'input' ? `${currentTheme.color} text-white border-2 border-black shadow-sm` : 'text-gray-500 hover:bg-white/50'}`}>記帳</button>
         <button onClick={() => setLedgerMode('detail')} className={`flex-1 py-1.5 text-xs font-black rounded-lg transition-all ${ledgerMode === 'detail' ? `${currentTheme.color} text-white border-2 border-black shadow-sm` : 'text-gray-500 hover:bg-white/50'}`}>明細</button>
-        <button onClick={() => setLedgerMode('settle')} className={`flex-1 py-1.5 text-xs font-black rounded-lg transition-all flex items-center justify-center ${ledgerMode === 'settle' ? `${currentTheme.color} text-white border-2 border-black shadow-sm` : 'text-gray-500 hover:bg-white/50'}`}>
-            <Scale size={12} className="mr-1" />分帳
+        <button onClick={() => setLedgerMode('stats')} className={`flex-1 py-1.5 text-xs font-black rounded-lg transition-all flex items-center justify-center ${ledgerMode === 'stats' ? `${currentTheme.color} text-white border-2 border-black shadow-sm` : 'text-gray-500 hover:bg-white/50'}`}>
+            <PieChart size={12} className="mr-1" />統計
         </button>
       </div>
 
@@ -185,14 +175,24 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ currentTheme, expenses, 
              <input type="number" value={amount} onChange={(e) => handleAmountChange(e.target.value)} placeholder="0" className={`w-full p-2 text-2xl font-black text-center ${POKE_INPUT_STYLE}`} />
           </div>
 
-          <input type="text" value={item} onChange={(e) => setItem(e.target.value)} placeholder="消費項目 (例如: 神奇糖果)" className={`w-full p-2 text-xs font-bold text-center ${POKE_INPUT_STYLE}`} />
-          <div className="flex space-x-2 overflow-x-auto py-2 no-scrollbar">
-            {members.map(m => (
-              <button key={m.id} onClick={() => setPayer(m.id)} className={`flex-shrink-0 flex items-center px-2 py-1 rounded-lg border-2 transition-all ${payer === m.id ? 'bg-gray-100 border-black shadow-[2px_2px_0px_#000]' : 'opacity-40 grayscale border-transparent'}`}>
-                <img src={m.img} className="w-5 h-5 rounded-full mr-1" alt="av" /><span className="text-[10px] font-black">{m.name}</span>
+          <input type="text" value={item} onChange={(e) => setItem(e.target.value)} placeholder="消費項目 (例如: 拉麵)" className={`w-full p-2 text-xs font-bold text-center ${POKE_INPUT_STYLE}`} />
+          
+          {/* Category Selection */}
+          <div className="grid grid-cols-5 gap-2 pt-2">
+            {CATEGORIES.map(cat => (
+              <button 
+                key={cat.id} 
+                onClick={() => setSelectedCategory(cat.id)} 
+                className={`flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all active:scale-95 ${selectedCategory === cat.id ? `bg-white border-black shadow-[2px_2px_0px_#000]` : 'bg-gray-50 border-transparent opacity-60 grayscale'}`}
+              >
+                <div className={`w-8 h-8 rounded-full ${cat.bg} text-white flex items-center justify-center mb-1 border border-black`}>
+                    <cat.icon size={14} />
+                </div>
+                <span className="text-[10px] font-black whitespace-nowrap">{cat.label}</span>
               </button>
             ))}
           </div>
+
           <button onClick={handleSubmit} className={`w-full ${currentTheme.color} text-white py-3 font-black ${POKE_BTN_STYLE}`}>確定儲存</button>
         </div>
       ) : ledgerMode === 'detail' ? (
@@ -203,14 +203,16 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ currentTheme, expenses, 
               </div>
            )}
            {expenses.map((exp, i) => {
-             const m = members.find(x => x.id === exp.payer) || members[0];
+             const cat = CATEGORIES.find(c => c.id === exp.category) || CATEGORIES[0];
              return (
                <div key={exp.id || i} className={`${POKE_CARD_STYLE} p-3 flex justify-between items-center bg-white`}>
                   <div className="flex items-center space-x-3">
-                    <img src={m?.img} className="w-8 h-8 rounded-full border border-black" alt="av" />
-                    <div><div className="font-black text-gray-800 text-sm">{exp.item}</div><div className="text-[10px] text-gray-400 font-bold">{m?.name} · {exp.date}</div></div>
+                    <div className={`w-8 h-8 rounded-full border border-black ${cat.bg} text-white flex items-center justify-center`}>
+                        <cat.icon size={16} />
+                    </div>
+                    <div><div className="font-black text-gray-800 text-sm">{exp.item}</div><div className="text-[10px] text-gray-400 font-bold">{exp.date}</div></div>
                   </div>
-                  <span className={`font-black text-lg ${DIGITAL_FONT_STYLE}`}>₩ {exp.amount}</span>
+                  <span className={`font-black text-lg ${DIGITAL_FONT_STYLE}`}>NT$ {exp.amount}</span>
                </div>
              );
            })}
@@ -218,65 +220,39 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ currentTheme, expenses, 
       ) : (
         <div className="space-y-4">
             <div className={`${POKE_CARD_STYLE} p-4 bg-white`}>
-                <div className="flex justify-between items-center mb-4 pb-2 border-b-2 border-dashed border-gray-200">
+                <div className="flex justify-between items-center mb-6 pb-2 border-b-2 border-dashed border-gray-200">
                     <span className="text-xs font-black text-gray-500 uppercase">Total Expense</span>
-                    <span className={`text-2xl font-black ${DIGITAL_FONT_STYLE}`}>₩ {settlementData.totalExpense.toFixed(0)}</span>
+                    <span className={`text-2xl font-black ${DIGITAL_FONT_STYLE}`}>NT$ {statsData.totalExpense.toFixed(0)}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                    <span className="text-xs font-black text-gray-500 uppercase">Avg / Person</span>
-                    <span className={`text-xl font-black text-blue-600 ${DIGITAL_FONT_STYLE}`}>₩ {settlementData.averageExpense.toFixed(0)}</span>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-2">
-                {settlementData.memberBalances.map(m => (
-                    <div key={m.id} className={`${POKE_CARD_STYLE} p-2 flex items-center justify-between`}>
-                        <div className="flex items-center space-x-2">
-                             <img src={m.img} className="w-8 h-8 rounded-full border border-black" alt={m.name} />
-                             <div>
-                                 <div className="text-xs font-black">{m.name}</div>
-                                 <div className="text-[9px] font-bold text-gray-400">Paid: {m.paid}</div>
-                             </div>
-                        </div>
-                        <div className={`px-2 py-1 rounded text-xs font-black border border-black/10 ${m.balance >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-                             {m.balance >= 0 ? '+' : ''}{m.balance.toFixed(0)}
+                
+                {/* Pie Chart */}
+                <div className="flex justify-center mb-6 relative">
+                    <div 
+                        className="w-40 h-40 rounded-full border-4 border-black shadow-[4px_4px_0px_rgba(0,0,0,0.2)]"
+                        style={{ background: statsData.gradientString }}
+                    ></div>
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="w-16 h-16 bg-white rounded-full border-2 border-black flex items-center justify-center shadow-inner">
+                            <PieChart size={24} className="text-gray-400" />
                         </div>
                     </div>
-                ))}
-            </div>
-
-            {settlementData.transfers.length > 0 && (
-                <div className="relative">
-                     <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-t-2 border-black border-dashed -z-10"></div>
-                     <span className="bg-[#f3f4f6] px-2 text-xs font-black text-gray-400 mx-auto block w-fit">SUGGESTED TRANSFERS</span>
                 </div>
-            )}
 
-            <div className="space-y-2">
-                {settlementData.transfers.length === 0 && settlementData.totalExpense > 0 ? (
-                    <div className="text-center text-xs font-bold text-green-600 py-4 bg-green-50 rounded-xl border border-green-200">
-                        All settled! No transfers needed.
-                    </div>
-                ) : (
-                    settlementData.transfers.map((t, idx) => (
-                        <div key={idx} className={`${POKE_CARD_STYLE} p-3 flex items-center justify-between bg-yellow-50`}>
-                             <div className="flex items-center space-x-2">
-                                <img src={t.fromImg} className="w-6 h-6 rounded-full border border-black" alt={t.from} />
-                                <span className="text-xs font-black">{t.from}</span>
-                             </div>
-                             
-                             <div className="flex flex-col items-center px-2">
-                                <span className={`text-sm font-black ${DIGITAL_FONT_STYLE}`}>₩ {t.amount}</span>
-                                <ArrowRight size={14} className="text-gray-400" />
-                             </div>
-
-                             <div className="flex items-center space-x-2">
-                                <span className="text-xs font-black">{t.to}</span>
-                                <img src={t.toImg} className="w-6 h-6 rounded-full border border-black" alt={t.to} />
-                             </div>
+                {/* Legend List */}
+                <div className="space-y-2">
+                    {statsData.catStats.map(cat => (
+                        <div key={cat.id} className="flex items-center justify-between p-2 rounded-lg bg-gray-50 border border-gray-100">
+                            <div className="flex items-center">
+                                <div className={`w-3 h-3 rounded-full border border-black mr-2 ${cat.bg}`}></div>
+                                <span className="text-xs font-black text-gray-700">{cat.label}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <span className="text-[10px] font-bold text-gray-400">{cat.percentage.toFixed(1)}%</span>
+                                <span className={`text-sm font-black ${DIGITAL_FONT_STYLE}`}>NT$ {cat.total}</span>
+                            </div>
                         </div>
-                    ))
-                )}
+                    ))}
+                </div>
             </div>
         </div>
       )}

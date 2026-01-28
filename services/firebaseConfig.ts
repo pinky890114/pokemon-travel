@@ -17,8 +17,8 @@ const FALLBACK_CONFIG = {
   authDomain: "poke-log-v2.firebaseapp.com",
   projectId: "poke-log-v2",
   storageBucket: "poke-log-v2.firebasestorage.app",
-  messagingSenderId: 208103149031,
-  appId: "1:208103149031::08741662388142"
+  messagingSenderId: "208103149031",
+  appId: "1:208103149031:web:0cd87416ac6e2b3de88142"
 };
 
 const apiKey = getEnv('VITE_FIREBASE_API_KEY') || FALLBACK_CONFIG.apiKey;

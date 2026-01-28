@@ -26,13 +26,13 @@ const getApiKey = () => {
 }
 
 const apiKey = getApiKey();
-console.log("Gemini Service initialized.");
 
 const ai = new GoogleGenAI({ apiKey });
 
 export const generateTransportSuggestion = async (start: string, end: string): Promise<string> => {
   if (!apiKey || apiKey === DEFAULT_KEY) {
-    return "train|0m|API Key 未設定。請在 Vercel 設定環境變數 API_KEY。";
+    // 雖然有 Default Key，但建議還是提示用戶設定
+    console.warn("Using Default API Key or Key not found");
   }
 
   const prompt = `從「${start}」到「${end}」的最佳交通？格式: MODE|DURATION|NOTES`;

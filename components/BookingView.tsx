@@ -3,7 +3,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Plane, Home, QrCode, Edit3, ArrowDownCircle, Clock, Luggage, MapPin, Plus, StickyNote, Calendar, Ticket, Languages, Sparkles, Loader2, Copy } from 'lucide-react';
 import { FlightData, Hotel, Theme, Voucher } from '../types';
 import { POKE_CARD_STYLE, DIGITAL_FONT_STYLE, POKE_INPUT_STYLE, POKE_BTN_STYLE } from '../constants';
-import { translateText } from '../services/geminiService';
+// FIX: Import from utils to avoid file resolution error
+import { translateText } from '../utils';
 
 interface BookingViewProps {
   currentTheme: Theme;

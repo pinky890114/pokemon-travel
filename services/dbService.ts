@@ -1,3 +1,4 @@
+
 import { db } from './firebaseConfig';
 import { collection, doc, setDoc, getDoc, updateDoc, deleteDoc, arrayUnion, query, where, getDocs, onSnapshot } from "firebase/firestore";
 import { AdventureMetadata, User } from '../types';
@@ -63,7 +64,15 @@ export const getUserAdventures = async (userId: string): Promise<AdventureMetada
             where('metadata.memberIds', 'array-contains', userId)
         );
         const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(doc => (doc.data() as any).metadata as AdventureMetadata);
+        return querySnapshot.docs.map(doc => {
+            const data = doc.data();
+            const meta = data.metadata as AdventureMetadata;
+            // Inject totalDays from the detailed data if available, default to 5
+            return {
+                ...meta,
+                totalDays: data.data?.totalDays || 5
+            };
+        });
     } catch (e) {
         console.error("Error fetching user adventures:", e);
         throw e;

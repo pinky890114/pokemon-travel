@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Loader2, Plus, LogOut, Map, ArrowRight, Copy, Check, Users, RefreshCw, AlertTriangle, Trash2 } from 'lucide-react';
 
-import { generateTransportSuggestion } from './services/geminiService';
+// FIX: Import from utils to avoid file resolution error
+import { generateTransportSuggestion } from './utils';
 import { createAdventureInDb, getUserAdventures, joinAdventureInDb, subscribeToAdventure, updateAdventureData, deleteAdventure } from './services/dbService';
 
 import { Header } from './components/Header';
@@ -52,7 +53,7 @@ const LoginScreen: React.FC<{ onLogin: (user: User) => void }> = ({ onLogin }) =
                 <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" className="w-12 h-12" alt="Logo" />
              </div>
              <h1 className="text-3xl font-black text-gray-800 tracking-tighter">
-                ADVENTURE LOG <span className="text-red-500 text-lg align-top">V2</span>
+                ADVENTURE LOG
              </h1>
              <p className="text-sm font-bold text-gray-500">請輸入訓練家名稱以開始</p>
           </div>
@@ -125,7 +126,8 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
       coverImage: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${Math.floor(Math.random() * 151) + 1}.png`,
       startDate: new Date().toISOString().split('T')[0],
       memberIds: [user.id],
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      totalDays: 5
     };
 
     const initialData = {
@@ -297,7 +299,7 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
                     <div className="h-20 bg-gray-100 relative overflow-hidden border-b-2 border-black">
                         <img src={adv.coverImage} className="w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-500" alt="cover"/>
                         <div className="absolute bottom-2 left-4 bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded border border-black text-[10px] font-bold">
-                            {adv.startDate}
+                            {adv.startDate} ~ {getDateStrFromDay(adv.totalDays || 5, adv.startDate)}
                         </div>
                     </div>
                     <div className="p-4 flex justify-between items-center">
@@ -451,8 +453,8 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
       await saveToDb({ events: newEvents });
   };
 
-  const handleAddExpense = async (amount: number, item: string, payer: string) => { 
-      const newExpenses = [{ id: generateId(), amount, item, payer, date: new Date().toISOString().split('T')[0], createdAt: new Date().toISOString() }, ...expenses];
+  const handleAddExpense = async (amount: number, item: string, payer: string, category: string) => { 
+      const newExpenses = [{ id: generateId(), amount, item, payer, category, date: new Date().toISOString().split('T')[0], createdAt: new Date().toISOString() }, ...expenses];
       setExpenses(newExpenses);
       await saveToDb({ expenses: newExpenses });
   };

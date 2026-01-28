@@ -12,6 +12,7 @@ export interface AdventureMetadata {
   startDate: string;
   memberIds: string[];
   createdAt: string;
+  totalDays?: number;
 }
 
 export interface TripSettings {
@@ -89,6 +90,7 @@ export interface Expense {
   id?: string;
   amount: number;
   item: string;
+  category?: string;
   payer: string;
   date: string;
   createdAt?: any;
