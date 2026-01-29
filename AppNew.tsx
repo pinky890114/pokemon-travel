@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Loader2, Plus, LogOut, Map, ArrowRight, Copy, Check, Users, RefreshCw, AlertTriangle } from 'lucide-react';
 
-import { generateTransportSuggestion } from './services/geminiService';
+// FIX: Import from utils to avoid file resolution error, same as App.tsx
+import { generateTransportSuggestion } from './utils';
 import { createAdventureInDb, getUserAdventures, joinAdventureInDb, subscribeToAdventure, updateAdventureData } from './services/dbService';
 
 import { Header } from './components/Header';

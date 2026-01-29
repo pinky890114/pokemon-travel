@@ -7,6 +7,8 @@ export const POKE_INPUT_STYLE = "font-['DotGothic16'] border-2 border-black shad
 export const DIGITAL_FONT_STYLE = "font-['VT323'] text-lg tracking-wider";
 
 export const CITY_WEATHER_DB: Record<string, WeatherInfo> = {
+  "TAOYUAN": { name: "TAOYUAN", temp: 25, minTemp: 20, maxTemp: 28, condition: "cloudy", icon: "☁️", type: "city", sunrise: "06:00", sunset: "18:00", lat: 25.0722, lng: 121.2256 },
+  "TAIPEI": { name: "TAIPEI", temp: 26, minTemp: 22, maxTemp: 30, condition: "rain", icon: "🌧️", type: "city", sunrise: "06:00", sunset: "18:00", lat: 25.0330, lng: 121.5654 },
   "ZURICH": { name: "ZURICH", temp: 5, minTemp: -2, maxTemp: 8, condition: "cloudy", icon: "☁️", type: "city", sunrise: "07:25", sunset: "17:45", lat: 47.3769, lng: 8.5417 },
   "LUZERN": { name: "LUZERN", temp: 4, minTemp: -1, maxTemp: 7, condition: "rain", icon: "🌧️", type: "city", sunrise: "07:28", sunset: "17:48", lat: 47.0502, lng: 8.3093 }, 
   "INTERLAKEN": { name: "INTERLAKEN", temp: 2, minTemp: -5, maxTemp: 5, condition: "snow", icon: "❄️", type: "mountain", sunrise: "07:30", sunset: "17:50", lat: 46.6863, lng: 7.8632 },
@@ -18,6 +20,8 @@ export const CITY_WEATHER_DB: Record<string, WeatherInfo> = {
 };
 
 export const CITY_KEYWORDS = [
+  { key: "TAOYUAN", words: ["桃機", "桃園", "taoyuan", "tpe airport", "airport"] },
+  { key: "TAIPEI", words: ["台北", "taipei", "tpe", "松山"] },
   { key: "LUZERN", words: ["luzern", "琉森", "lucerne"] },
   { key: "ZURICH", words: ["zurich", "蘇黎世"] },
   { key: "INTERLAKEN", words: ["interlaken", "因特拉肯"] },

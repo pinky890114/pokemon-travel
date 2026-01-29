@@ -100,6 +100,7 @@ export const getDayInfo = (dayIndex: number, startDateStr: string) => {
 };
 
 export const identifyCityKey = (day: number, dayEvents: ItineraryEvent[] = []): string => {
+  // Priority 1: Check events for keywords
   for (const event of dayEvents) {
     const textToCheck = (event.title + " " + (event.location || "")).toLowerCase();
     for (const cityGroup of CITY_KEYWORDS) {
@@ -110,6 +111,9 @@ export const identifyCityKey = (day: number, dayEvents: ItineraryEvent[] = []): 
       }
     }
   }
+  
+  // Priority 2: Fallback logic based on day number
+  if (day === 1) return "TAOYUAN"; // Default start location
   if (day <= 3) return "ZURICH";
   if (day <= 6) return "INTERLAKEN";
   if (day <= 9) return "ZERMATT";
@@ -121,7 +125,7 @@ export const identifyCityKey = (day: number, dayEvents: ItineraryEvent[] = []): 
 
 export const getCityWeather = (day: number, dayEvents: ItineraryEvent[] = []): WeatherInfo => {
   const key = identifyCityKey(day, dayEvents);
-  return CITY_WEATHER_DB[key];
+  return CITY_WEATHER_DB[key] || CITY_WEATHER_DB["ZURICH"];
 };
 
 const getWeatherIcon = (code: number): { icon: string; condition: string } => {
