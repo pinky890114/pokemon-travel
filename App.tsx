@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Loader2, Plus, LogOut, Map, ArrowRight, Copy, Check, Users, RefreshCw, AlertTriangle, Trash2 } from 'lucide-react';
 
-// FIX: Import from utils to avoid file resolution error
+import React, { useState, useEffect, useCallback } from 'react';
+import { Loader2, Plus, LogOut, Map, ArrowRight, Copy, Check, Users, RefreshCw, AlertTriangle, Trash2, Edit2 } from 'lucide-react';
+
+// FIX: Import from utils to avoid file resolution error, same as App.tsx
 import { generateTransportSuggestion } from './utils';
 import { createAdventureInDb, getUserAdventures, joinAdventureInDb, subscribeToAdventure, updateAdventureData, deleteAdventure } from './services/dbService';
 
@@ -12,7 +13,7 @@ import { BookingView } from './components/BookingView';
 import { LedgerView } from './components/LedgerView';
 import { MembersView } from './components/MembersView';
 import { JournalSection } from './components/JournalSection';
-import { WeatherModal, SettingsModal, EventModal, FlightModal, HotelModal, VoucherModal, QRModal, MemberModal, JournalModal } from './components/Modals';
+import { WeatherModal, SettingsModal, EventModal, FlightModal, HotelModal, VoucherModal, QRModal, MemberModal, JournalModal, ProfileModal } from './components/Modals';
 
 import { 
   TripSettings, ItineraryEvent, FlightData, Expense, FlightSegment, Hotel, Voucher, Member, JournalEntry, User, AdventureMetadata
@@ -82,9 +83,10 @@ interface LobbyScreenProps {
   user: User;
   onSelectAdventure: (id: string) => void;
   onLogout: () => void;
+  onUpdateUser: (u: User) => void;
 }
 
-const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLogout }) => {
+const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLogout, onUpdateUser }) => {
   const [adventures, setAdventures] = useState<AdventureMetadata[]>([]);
   const [newTitle, setNewTitle] = useState('');
   const [joinId, setJoinId] = useState('');
@@ -92,6 +94,7 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [dbError, setDbError] = useState<string | null>(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   const loadAdventures = async () => {
       setIsLoading(true);
@@ -205,12 +208,22 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
       setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const handleUpdateProfile = (u: User) => {
+      onUpdateUser(u);
+      setShowProfileModal(false);
+  };
+
   return (
     <div className="min-h-screen bg-[#f3f4f6] font-['DotGothic16'] pb-20">
       <div className="p-6 pt-12">
          <div className="flex justify-between items-center mb-8">
             <div className="flex items-center space-x-3">
-               <img src={user.avatar} className="w-12 h-12 rounded-full border-2 border-black bg-white" alt="avatar" />
+               <button onClick={() => setShowProfileModal(true)} className="relative group flex-shrink-0">
+                   <img src={user.avatar} className="w-12 h-12 rounded-full border-2 border-black bg-white object-cover" alt="avatar" />
+                   <div className="absolute -bottom-1 -right-1 bg-blue-500 text-white border border-black rounded-full p-1 shadow-sm group-hover:scale-110 transition-transform">
+                       <Edit2 size={8} />
+                   </div>
+               </button>
                <div>
                   <div className="text-[10px] font-bold text-gray-500 uppercase">Welcome back</div>
                   <h2 className="text-xl font-black leading-none">{user.name}</h2>
@@ -332,6 +345,7 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
             ))}
          </div>
       </div>
+      {showProfileModal && <ProfileModal user={user} onClose={() => setShowProfileModal(false)} onSave={handleUpdateProfile} />}
     </div>
   );
 };
@@ -340,9 +354,10 @@ interface AdventureBoardProps {
   user: User;
   adventureId: string;
   onBack: () => void;
+  onUpdateUser: (u: User) => void;
 }
 
-const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBack }) => {
+const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBack, onUpdateUser }) => {
   const [activeTab, setActiveTab] = useState('itinerary'); 
   const [activeDay, setActiveDay] = useState(1); 
   const [totalDays, setTotalDays] = useState(5);
@@ -357,6 +372,7 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
   const [members, setMembers] = useState<Member[]>(INITIAL_MEMBERS);
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
   const [weatherOverrides, setWeatherOverrides] = useState<Record<string, string>>({});
+  const [currentCoverImage, setCurrentCoverImage] = useState('');
 
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showWeatherModal, setShowWeatherModal] = useState(false);
@@ -366,6 +382,7 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
   const [showVoucherModal, setShowVoucherModal] = useState(false);
   const [showMemberModal, setShowMemberModal] = useState(false);
   const [showJournalModal, setShowJournalModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   
   const [viewingQR, setViewingQR] = useState<{image: string, title: string} | null>(null);
 
@@ -395,12 +412,13 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
           if (data.members) setMembers(data.members);
           if (data.journalEntries) setJournalEntries(data.journalEntries);
           if (data.weatherOverrides) setWeatherOverrides(data.weatherOverrides);
+          if (data.coverImage) setCurrentCoverImage(data.coverImage);
           setLoading(false);
       });
       return () => unsubscribe();
   }, [adventureId]);
 
-  const saveToDb = async (overrides: Partial<any> = {}) => {
+  const saveToDb = async (overrides: Partial<any> = {}, coverImageOverride?: string) => {
       const dataToSave = {
           tripSettings,
           flightData,
@@ -414,14 +432,29 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
           weatherOverrides,
           ...overrides
       };
-      await updateAdventureData(adventureId, dataToSave);
+      await updateAdventureData(adventureId, dataToSave, coverImageOverride);
   };
 
-  const handleSaveSettings = async (settings: TripSettings, days: number) => {
+  const handleSaveSettings = async (settings: TripSettings, days: number, coverImage?: string) => {
     setTripSettings(settings);
     setTotalDays(days);
+    if(coverImage) setCurrentCoverImage(coverImage);
     setShowSettingsModal(false);
-    await saveToDb({ tripSettings: settings, totalDays: days });
+    await saveToDb({ tripSettings: settings, totalDays: days }, coverImage);
+  };
+
+  const handleSaveProfile = async (updatedUser: User) => {
+    onUpdateUser(updatedUser); 
+    
+    // Update the member record in the current adventure
+    const newMembers = members.map(m => 
+        m.id === updatedUser.id 
+        ? { ...m, name: updatedUser.name, img: updatedUser.avatar }
+        : m
+    );
+    setMembers(newMembers);
+    setShowProfileModal(false);
+    await saveToDb({ members: newMembers });
   };
 
   const handleUpdateWeatherLocation = async (day: number, cityKey: string) => {
@@ -581,8 +614,21 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
       )}
       
       <div className="relative">
-         <button onClick={onBack} className="fixed top-4 left-4 z-50 bg-white/80 p-2 rounded-full border-2 border-black shadow-sm active:scale-90"><ArrowRight className="rotate-180" size={16}/></button>
-         <Header tripSettings={tripSettings} currentTheme={currentTheme} members={members} onOpenSettings={() => setShowSettingsModal(true)} />
+         <button 
+           onClick={onBack} 
+           className="fixed top-4 left-4 z-50 bg-white/90 p-2 rounded-xl border-2 border-black shadow-sm active:scale-90 flex items-center space-x-1 pr-3"
+         >
+           <ArrowRight className="rotate-180" size={16}/>
+           <span className="text-xs font-bold hidden sm:inline">回到大廳</span>
+         </button>
+         <Header 
+            tripSettings={tripSettings} 
+            currentTheme={currentTheme} 
+            members={members} 
+            currentUser={user}
+            onOpenSettings={() => setShowSettingsModal(true)} 
+            onOpenProfile={() => setShowProfileModal(true)}
+         />
       </div>
 
       <main className="mt-4">
@@ -618,6 +664,7 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
 
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} currentTheme={currentTheme} />
 
+      {/* Modals Injection */}
       {showWeatherModal && (
         <WeatherModal 
             weather={currentWeather} 
@@ -627,13 +674,14 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
             onUpdateLocation={handleUpdateWeatherLocation}
         />
       )}
-      {showSettingsModal && <SettingsModal settings={tripSettings} totalDays={totalDays} adventureId={adventureId} onClose={() => setShowSettingsModal(false)} onSave={handleSaveSettings} />}
+      {showSettingsModal && <SettingsModal settings={tripSettings} totalDays={totalDays} adventureId={adventureId} currentCoverImage={currentCoverImage} onClose={() => setShowSettingsModal(false)} onSave={handleSaveSettings} />}
       {showEventModal && currentEvent && <EventModal event={currentEvent} isEditing={isEditingEvent} currentTheme={currentTheme} onClose={() => setShowEventModal(false)} onSave={handleSaveEvent} />}
       {showFlightModal && <FlightModal flightData={flightData[editingFlightDirection]} currentTheme={currentTheme} onClose={() => setShowFlightModal(false)} onSave={handleSaveFlights} />}
       {showHotelModal && currentHotel && <HotelModal hotel={currentHotel} currentTheme={currentTheme} onClose={() => setShowHotelModal(false)} onSave={handleSaveHotel} onDelete={handleDeleteHotel} />}
       {showVoucherModal && currentVoucher && <VoucherModal voucher={currentVoucher} currentTheme={currentTheme} onClose={() => setShowVoucherModal(false)} onSave={handleSaveVoucher} onDelete={handleDeleteVoucher} />}
       {showMemberModal && currentMember && <MemberModal member={currentMember} currentTheme={currentTheme} onClose={() => setShowMemberModal(false)} onSave={handleSaveMember} onDelete={handleDeleteMember} />}
       {showJournalModal && <JournalModal members={members} currentTheme={currentTheme} onClose={() => setShowJournalModal(false)} onSave={handleAddJournalEntry} />}
+      {showProfileModal && <ProfileModal user={user} onClose={() => setShowProfileModal(false)} onSave={handleSaveProfile} />}
       {viewingQR && <QRModal image={viewingQR.image} title={viewingQR.title} onClose={() => setViewingQR(null)} />}
     </div>
   );
@@ -655,6 +703,11 @@ const App: React.FC = () => {
     localStorage.setItem('poke_user_session', JSON.stringify(u));
   };
 
+  const handleUpdateUser = (u: User) => {
+      setUser(u);
+      localStorage.setItem('poke_user_session', JSON.stringify(u));
+  };
+
   const handleLogout = () => {
     setUser(null);
     setCurrentAdventureId(null);
@@ -671,6 +724,7 @@ const App: React.FC = () => {
             user={user} 
             onSelectAdventure={setCurrentAdventureId} 
             onLogout={handleLogout} 
+            onUpdateUser={handleUpdateUser}
         />
     );
   }
@@ -680,6 +734,7 @@ const App: React.FC = () => {
         user={user} 
         adventureId={currentAdventureId} 
         onBack={() => setCurrentAdventureId(null)} 
+        onUpdateUser={handleUpdateUser}
     />
   );
 };

@@ -635,6 +635,19 @@ export const QRModal: React.FC<{ image: string; title: string; onClose: () => vo
 
 export const MemberModal: React.FC<{ member: Member; currentTheme: Theme; onClose: () => void; onSave: (m: Member) => void; onDelete: (id: string) => void }> = ({ member, currentTheme, onClose, onSave, onDelete }) => {
     const [localMember, setLocalMember] = React.useState(member);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            try {
+                const compressed = await compressImage(file, 300, 0.7);
+                setLocalMember({...localMember, img: compressed});
+            } catch (err) {
+                console.error("Image compression failed", err);
+            }
+        }
+    };
 
     return (
       <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
@@ -643,8 +656,15 @@ export const MemberModal: React.FC<{ member: Member; currentTheme: Theme; onClos
              <h3 className="font-black text-xl">{member.id ? '編輯成員' : '新增成員'}</h3>
              <button onClick={onClose}><X size={20}/></button>
            </div>
+           
            <div className="flex flex-col items-center mb-6">
-                <img src={localMember.img} className="w-20 h-20 rounded-full border-4 border-black bg-white mb-3" alt="avatar" />
+                <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                    <img src={localMember.img} className="w-20 h-20 rounded-full border-4 border-black bg-white mb-3 object-cover" alt="avatar" />
+                    <div className="absolute bottom-3 right-0 bg-blue-500 text-white border-2 border-black rounded-full p-1 shadow-md active:scale-90 transition-transform">
+                       <Camera size={12} />
+                    </div>
+                </div>
+                <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" />
                 <h4 className="font-black text-lg">{localMember.name}</h4>
            </div>
 
