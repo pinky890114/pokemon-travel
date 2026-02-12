@@ -179,7 +179,7 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
                            <span className="text-[8px] font-bold text-gray-400 leading-none mb-0.5">IN</span>
                            <span className={`text-xs font-black text-gray-700 ${DIGITAL_FONT_STYLE} leading-none`}>{h.checkIn?.slice(5).replace('-', '/') || '--/--'}</span>
                        </div>
-                       <div className="text-gray-300 font-black text-[10px]">></div>
+                       <div className="text-gray-300 font-black text-[10px]">&gt;</div>
                        <div className="flex-1 bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5 flex flex-col items-center">
                            <span className="text-[8px] font-bold text-gray-400 leading-none mb-0.5">OUT</span>
                            <span className={`text-xs font-black text-gray-700 ${DIGITAL_FONT_STYLE} leading-none`}>{h.checkOut?.slice(5).replace('-', '/') || '--/--'}</span>
