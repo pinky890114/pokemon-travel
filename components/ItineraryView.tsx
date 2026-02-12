@@ -1,6 +1,6 @@
 
 import React, { useRef, useState, useEffect } from 'react';
-import { MapPin, ArrowUp, ArrowDown, Plus, Minus, Trash2, StickyNote, X, Train, Car, Bus, Loader2, Wand2 } from 'lucide-react';
+import { MapPin, ArrowUp, ArrowDown, Plus, Minus, Trash2, StickyNote, X, Train, Car, Bus, Loader2 } from 'lucide-react';
 import { ItineraryEvent, TripSettings, Theme, WeatherInfo } from '../types';
 import { getDayInfo, getPokemonSprite, getCityWeather, getDateStrFromDay, fetchRealtimeWeather, identifyCityKey } from '../utils';
 import { POKEMON_THEMES, POKE_CARD_STYLE, DIGITAL_FONT_STYLE, POKE_BTN_STYLE, CITY_WEATHER_DB } from '../constants';
@@ -174,13 +174,11 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
         </div>
         
         <div className="space-y-4 relative">
-          <div className="absolute left-[19px] top-4 bottom-4 w-2 bg-[#ddd] border-x-2 border-black -z-10"></div>
+          <div className="absolute left-[19px] top-4 bottom-4 border-l-2 border-black border-dashed -z-10"></div>
           {dayEvents.length === 0 ? (
             <div className={`${POKE_CARD_STYLE} p-8 text-center bg-gray-50 text-gray-400 font-bold`}>尚未遭遇任何事件...</div>
           ) : (
             dayEvents.map((item, idx) => {
-              const nextItem = dayEvents[idx + 1];
-              const showMagicBtn = item.type === 'event' && nextItem && nextItem.type === 'event';
               return (
                 <React.Fragment key={item.id}>
                   <div className="relative pl-12 cursor-pointer" onClick={() => onAddEvent(item)}>
@@ -221,13 +219,6 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                       </div>
                     )}
                   </div>
-                  {showMagicBtn && (
-                    <div className="flex justify-center -my-3 relative z-10 pl-12">
-                      <button onClick={(e) => { e.stopPropagation(); onGenerateTransport(item, nextItem); }} disabled={generatingTransportId === item.id} className="bg-purple-100 text-purple-600 border-2 border-purple-300 rounded-full p-1.5 shadow-sm hover:scale-110 active:scale-95 transition-transform">
-                        {generatingTransportId === item.id ? <Loader2 className="animate-spin" size={14}/> : <Wand2 size={14} />}
-                      </button>
-                    </div>
-                  )}
                 </React.Fragment>
               );
             })

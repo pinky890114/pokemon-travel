@@ -1,16 +1,22 @@
 
 import React from 'react';
-import { Settings } from 'lucide-react';
-import { TripSettings, Member, Theme } from '../types';
+import { Settings, Edit } from 'lucide-react';
+import { TripSettings, Member, Theme, User } from '../types';
 
 interface HeaderProps {
   tripSettings: TripSettings;
   currentTheme: Theme;
   members: Member[];
+  currentUser?: User; // Add current user to props
   onOpenSettings: () => void;
+  onOpenProfile?: () => void; // Callback for profile edit
 }
 
-export const Header: React.FC<HeaderProps> = ({ tripSettings, currentTheme, members, onOpenSettings }) => {
+export const Header: React.FC<HeaderProps> = ({ tripSettings, currentTheme, members, currentUser, onOpenSettings, onOpenProfile }) => {
+  // Find current user's member object if available, or fallback to user data
+  const myMember = members.find(m => m.id === currentUser?.id);
+  const myImg = myMember ? myMember.img : currentUser?.avatar;
+
   return (
     <div className={`px-6 pt-12 pb-6 flex justify-between items-center ${currentTheme.bgLight} sticky top-0 z-20 border-b-4 border-black transition-colors duration-300`}>
       <div className="relative z-10 flex items-center">
@@ -27,18 +33,32 @@ export const Header: React.FC<HeaderProps> = ({ tripSettings, currentTheme, memb
           </div>
         </div>
       </div>
-      <div className="relative z-10 bg-white px-2 py-1 border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_#000]">
-         <div className="text-[10px] font-bold text-center border-b border-gray-200 mb-1 pb-1 uppercase">Team</div>
-         <div className="flex -space-x-2">
-            {members.slice(0, 4).map((m: Member) => (
-              <div key={m.id} className={`w-7 h-7 rounded-full border border-black overflow-hidden bg-gray-200 hover:z-10 transition-all hover:scale-125`}>
-                <img src={m.img} className="w-full h-full object-cover" alt={m.name} />
-              </div>
-            ))}
-            {members.length > 4 && (
-               <div className="w-7 h-7 rounded-full border border-black bg-gray-100 flex items-center justify-center text-[10px] font-black z-0">+{members.length - 4}</div>
-            )}
-         </div>
+      
+      {/* Right side: Current User Avatar + Team Mini List */}
+      <div className="flex flex-col items-end gap-2">
+          {/* Main Avatar (Clickable) */}
+          {myImg && (
+              <button onClick={onOpenProfile} className="relative group">
+                  <img src={myImg} className="w-10 h-10 rounded-full border-2 border-black bg-white shadow-md group-hover:scale-105 transition-transform object-cover" alt="Me" />
+                  <div className="absolute bottom-0 right-0 bg-white border border-black rounded-full p-0.5 shadow-sm">
+                      <Edit size={8} />
+                  </div>
+              </button>
+          )}
+
+          {/* Other Members */}
+          <div className="relative z-10 bg-white px-2 py-1 border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_#000]">
+             <div className="flex -space-x-2">
+                {members.slice(0, 4).map((m: Member) => (
+                  <div key={m.id} className={`w-6 h-6 rounded-full border border-black overflow-hidden bg-gray-200 hover:z-10 transition-all`}>
+                    <img src={m.img} className="w-full h-full object-cover" alt={m.name} />
+                  </div>
+                ))}
+                {members.length > 4 && (
+                   <div className="w-6 h-6 rounded-full border border-black bg-gray-100 flex items-center justify-center text-[8px] font-black z-0">+{members.length - 4}</div>
+                )}
+             </div>
+          </div>
       </div>
     </div>
   );

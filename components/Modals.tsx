@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { X, Sun, Plus, Minus, Trash2, Upload, Ticket, QrCode, Check, Camera, Copy, Key, User as UserIcon, RefreshCw, MapPin, FileText, Image as ImageIcon } from 'lucide-react';
 import { POKE_CARD_STYLE, POKE_INPUT_STYLE, POKE_BTN_STYLE, DIGITAL_FONT_STYLE, POKEMON_THEMES, CITY_WEATHER_DB } from '../constants';
 import { TripSettings, ItineraryEvent, FlightSegment, Theme, Hotel, Voucher, Member, JournalEntry, WeatherInfo, User } from '../types';
@@ -75,7 +75,7 @@ interface ProfileModalProps {
 export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSave }) => {
   const [name, setName] = useState(user.name);
   const [avatar, setAvatar] = useState(user.avatar);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleRandomAvatar = () => {
     const seed = Math.random().toString(36).substring(7);
@@ -86,7 +86,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSav
     const file = e.target.files?.[0];
     if (file) {
       try {
-        const compressed = await compressImage(file, 200, 0.7);
+        const compressed = await compressImage(file, 300, 0.7);
         setAvatar(compressed);
       } catch (err) {
         console.error("Image compression failed", err);
@@ -103,18 +103,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSav
          </div>
          
          <div className="flex flex-col items-center space-y-4">
-             <div className="relative group">
+             <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                 <img src={avatar} className="w-24 h-24 rounded-full border-4 border-black bg-white object-cover" alt="avatar" />
-                <button 
-                   onClick={() => fileInputRef.current?.click()}
-                   className="absolute bottom-0 right-0 bg-blue-500 text-white border-2 border-black rounded-full p-1.5 shadow-md active:scale-90 transition-transform"
-                   title="Upload Image"
-                >
+                <div className="absolute bottom-0 right-0 bg-blue-500 text-white border-2 border-black rounded-full p-1.5 shadow-md active:scale-90 transition-transform">
                    <Upload size={14} />
-                </button>
+                </div>
              </div>
              
-             <button onClick={handleRandomAvatar} className="text-xs font-bold text-gray-500 flex items-center hover:text-black">
+             <button onClick={handleRandomAvatar} className="text-xs font-bold text-gray-500 flex items-center hover:text-black border border-gray-300 rounded px-2 py-1 bg-white">
                  <RefreshCw size={12} className="mr-1"/> 隨機生成外觀
              </button>
              <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" />
@@ -156,7 +152,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, totalDay
   const [coverImage, setCoverImage] = React.useState(currentCoverImage || '');
   const [pokeId, setPokeId] = React.useState('');
   const [copied, setCopied] = useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const copyId = () => {
     if (adventureId) {
@@ -255,18 +251,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, totalDay
                  <button onClick={handleRandomPokemon} className="bg-gray-100 border border-black rounded p-2 text-xs font-bold hover:bg-gray-200"><RefreshCw size={14}/></button>
               </div>
               
-              <div className="relative group w-full h-32 bg-gray-100 rounded-xl border-2 border-black overflow-hidden mb-2">
+              <div className="relative group w-full h-32 bg-gray-100 rounded-xl border-2 border-black overflow-hidden mb-2 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                   {coverImage ? (
                       <img src={coverImage} className="w-full h-full object-cover" alt="Cover" />
                   ) : (
                       <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs font-bold">No Image</div>
                   )}
-                  <button 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="absolute inset-0 bg-black/30 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity font-bold"
-                  >
+                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity font-bold">
                     <Upload size={20} className="mr-2"/> Upload Custom
-                  </button>
+                  </div>
                   <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" />
               </div>
            </div>
@@ -410,8 +403,8 @@ export const FlightModal: React.FC<{ flightData: FlightSegment[]; currentTheme: 
 
 export const HotelModal: React.FC<{ hotel: Hotel; currentTheme: Theme; onClose: () => void; onSave: (h: Hotel) => void; onDelete: (id: string) => void }> = ({ hotel, currentTheme, onClose, onSave, onDelete }) => {
     const [localHotel, setLocalHotel] = React.useState(hotel);
-    const imageInputRef = React.useRef<HTMLInputElement>(null);
-    const bookingFileInputRef = React.useRef<HTMLInputElement>(null);
+    const imageInputRef = useRef<HTMLInputElement>(null);
+    const bookingFileInputRef = useRef<HTMLInputElement>(null);
 
     const handleCoverImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -469,46 +462,68 @@ export const HotelModal: React.FC<{ hotel: Hotel; currentTheme: Theme; onClose: 
                </div>
 
                {/* Cover Image Upload */}
-               <div className="border-2 border-dashed border-gray-300 rounded-xl p-3 bg-gray-50 relative group">
-                   <label className="text-[10px] font-bold text-gray-500 block mb-1">HOTEL COVER PHOTO</label>
-                   {localHotel.image ? (
-                        <div className="relative h-24">
-                           <img src={localHotel.image} className="w-full h-full object-cover rounded border border-gray-200" alt="Cover" />
-                           <button onClick={() => setLocalHotel({...localHotel, image: ''})} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 shadow"><X size={10}/></button>
-                        </div>
-                   ) : (
-                        <div className="h-24 flex flex-col items-center justify-center text-gray-400">
-                             <ImageIcon size={20} className="mb-1"/>
-                             <span className="text-[9px]">Upload Image</span>
-                        </div>
-                   )}
+               <div className="border-2 border-dashed border-gray-300 rounded-xl p-3 bg-gray-50 relative group hover:bg-gray-100 transition-colors">
+                   <label className="text-[10px] font-bold text-gray-500 block mb-1">HOTEL COVER PHOTO (左側圖片)</label>
+                   <div 
+                      className="relative h-24 w-full cursor-pointer flex items-center justify-center"
+                      onClick={() => imageInputRef.current?.click()}
+                   >
+                       {localHotel.image ? (
+                            <img src={localHotel.image} className="w-full h-full object-cover rounded border border-gray-200" alt="Cover" />
+                       ) : (
+                            <div className="flex flex-col items-center justify-center text-gray-400">
+                                 <ImageIcon size={20} className="mb-1"/>
+                                 <span className="text-[9px] font-bold">點擊上傳外觀</span>
+                            </div>
+                       )}
+                       {/* Clear Button */}
+                       {localHotel.image && (
+                           <button 
+                             onClick={(e) => { e.stopPropagation(); setLocalHotel({...localHotel, image: ''}); }} 
+                             className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow z-50"
+                           >
+                               <X size={10}/>
+                           </button>
+                       )}
+                   </div>
                    <input type="file" ref={imageInputRef} onChange={handleCoverImageUpload} className="hidden" accept="image/*" />
-                   {!localHotel.image && <button onClick={() => imageInputRef.current?.click()} className="absolute inset-0 w-full h-full opacity-0"></button>}
                </div>
 
                {/* Booking File Upload */}
-               <div className="border-2 border-dashed border-gray-300 rounded-xl p-3 bg-gray-50 relative group">
+               <div className="border-2 border-dashed border-gray-300 rounded-xl p-3 bg-gray-50 relative group hover:bg-gray-100 transition-colors">
                    <label className="text-[10px] font-bold text-gray-500 block mb-1">BOOKING CONFIRMATION (PDF/IMG)</label>
-                   {localHotel.bookingFile ? (
-                        <div className="relative h-24 flex items-center justify-center bg-white border border-gray-200 rounded">
-                           {localHotel.bookingFileType === 'pdf' ? (
-                               <div className="flex flex-col items-center text-red-500">
-                                   <FileText size={32} />
-                                   <span className="text-[9px] font-bold mt-1">PDF Uploaded</span>
-                               </div>
-                           ) : (
-                               <img src={localHotel.bookingFile} className="w-full h-full object-contain" alt="Booking" />
-                           )}
-                           <button onClick={() => setLocalHotel({...localHotel, bookingFile: undefined, bookingFileType: undefined})} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 shadow"><X size={10}/></button>
-                        </div>
-                   ) : (
-                        <div className="h-24 flex flex-col items-center justify-center text-gray-400">
-                             <Upload size={20} className="mb-1"/>
-                             <span className="text-[9px]">Upload Voucher</span>
-                        </div>
-                   )}
+                   <div 
+                      className="relative h-24 w-full cursor-pointer flex items-center justify-center"
+                      onClick={() => bookingFileInputRef.current?.click()}
+                   >
+                       {localHotel.bookingFile ? (
+                            <div className="flex items-center justify-center w-full h-full bg-white border border-gray-200 rounded">
+                               {localHotel.bookingFileType === 'pdf' ? (
+                                   <div className="flex flex-col items-center text-red-500">
+                                       <FileText size={32} />
+                                       <span className="text-[9px] font-bold mt-1">PDF 已上傳</span>
+                                   </div>
+                               ) : (
+                                   <img src={localHotel.bookingFile} className="w-full h-full object-contain" alt="Booking" />
+                               )}
+                            </div>
+                       ) : (
+                            <div className="flex flex-col items-center justify-center text-gray-400">
+                                 <Upload size={20} className="mb-1"/>
+                                 <span className="text-[9px] font-bold">點擊上傳憑證</span>
+                            </div>
+                       )}
+                       {/* Clear Button */}
+                       {localHotel.bookingFile && (
+                           <button 
+                             onClick={(e) => { e.stopPropagation(); setLocalHotel({...localHotel, bookingFile: undefined, bookingFileType: undefined}); }} 
+                             className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow z-50"
+                           >
+                               <X size={10}/>
+                           </button>
+                       )}
+                   </div>
                    <input type="file" ref={bookingFileInputRef} onChange={handleBookingFileUpload} className="hidden" accept="image/*,application/pdf" />
-                   {!localHotel.bookingFile && <button onClick={() => bookingFileInputRef.current?.click()} className="absolute inset-0 w-full h-full opacity-0"></button>}
                </div>
 
                <textarea value={localHotel.notes} onChange={e => setLocalHotel({...localHotel, notes: e.target.value})} placeholder="Notes..." className={`w-full p-2 h-16 resize-none ${POKE_INPUT_STYLE}`} />
@@ -527,7 +542,7 @@ export const HotelModal: React.FC<{ hotel: Hotel; currentTheme: Theme; onClose: 
 
 export const VoucherModal: React.FC<{ voucher: Voucher; currentTheme: Theme; onClose: () => void; onSave: (v: Voucher) => void; onDelete: (id: string) => void }> = ({ voucher, currentTheme, onClose, onSave, onDelete }) => {
     const [localVoucher, setLocalVoucher] = React.useState(voucher);
-    const fileInputRef = React.useRef<HTMLInputElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -669,7 +684,7 @@ export const JournalModal: React.FC<{ members: Member[]; currentTheme: Theme; on
     const [content, setContent] = React.useState('');
     const [authorId, setAuthorId] = React.useState(members[0]?.id || '');
     const [image, setImage] = React.useState<string | undefined>(undefined);
-    const fileInputRef = React.useRef<HTMLInputElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];

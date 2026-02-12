@@ -13,7 +13,7 @@ import { BookingView } from './components/BookingView';
 import { LedgerView } from './components/LedgerView';
 import { MembersView } from './components/MembersView';
 import { JournalSection } from './components/JournalSection';
-import { WeatherModal, SettingsModal, EventModal, FlightModal, HotelModal, VoucherModal, QRModal, MemberModal, JournalModal } from './components/Modals';
+import { WeatherModal, SettingsModal, EventModal, FlightModal, HotelModal, VoucherModal, QRModal, MemberModal, JournalModal, ProfileModal } from './components/Modals';
 
 import { 
   TripSettings, ItineraryEvent, FlightData, Expense, FlightSegment, Hotel, Voucher, Member, JournalEntry, User, AdventureMetadata
@@ -325,9 +325,10 @@ interface AdventureBoardProps {
   user: User;
   adventureId: string;
   onBack: () => void;
+  onUpdateUser: (u: User) => void; // Add this prop
 }
 
-const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBack }) => {
+const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBack, onUpdateUser }) => {
   const [activeTab, setActiveTab] = useState('itinerary'); 
   const [activeDay, setActiveDay] = useState(1); 
   const [totalDays, setTotalDays] = useState(5);
@@ -343,6 +344,7 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
   const [members, setMembers] = useState<Member[]>(INITIAL_MEMBERS);
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
   const [weatherOverrides, setWeatherOverrides] = useState<Record<string, string>>({});
+  const [currentCoverImage, setCurrentCoverImage] = useState('');
 
   // Modals
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -353,6 +355,7 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
   const [showVoucherModal, setShowVoucherModal] = useState(false);
   const [showMemberModal, setShowMemberModal] = useState(false);
   const [showJournalModal, setShowJournalModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   
   const [viewingQR, setViewingQR] = useState<{image: string, title: string} | null>(null);
 
@@ -384,15 +387,14 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
           if (data.members) setMembers(data.members);
           if (data.journalEntries) setJournalEntries(data.journalEntries);
           if (data.weatherOverrides) setWeatherOverrides(data.weatherOverrides);
+          if (data.coverImage) setCurrentCoverImage(data.coverImage); // Load cover image from stream
           setLoading(false);
       });
       return () => unsubscribe();
   }, [adventureId]);
 
   // Helper to save current state to DB
-  // NOTE: In a more complex app, we would save only partial updates. 
-  // For simplicity here, we save the whole state blob when a major action completes.
-  const saveToDb = async (overrides: Partial<any> = {}) => {
+  const saveToDb = async (overrides: Partial<any> = {}, coverImageOverride?: string) => {
       const dataToSave = {
           tripSettings,
           flightData,
@@ -406,14 +408,29 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
           weatherOverrides,
           ...overrides // Allow overriding state that hasn't updated yet in the closure
       };
-      await updateAdventureData(adventureId, dataToSave);
+      await updateAdventureData(adventureId, dataToSave, coverImageOverride);
   };
 
-  const handleSaveSettings = async (settings: TripSettings, days: number) => {
+  const handleSaveSettings = async (settings: TripSettings, days: number, coverImage?: string) => {
     setTripSettings(settings);
     setTotalDays(days);
+    if(coverImage) setCurrentCoverImage(coverImage);
     setShowSettingsModal(false);
-    await saveToDb({ tripSettings: settings, totalDays: days });
+    await saveToDb({ tripSettings: settings, totalDays: days }, coverImage);
+  };
+
+  const handleSaveProfile = async (updatedUser: User) => {
+    onUpdateUser(updatedUser); // Update global user state and localStorage
+    
+    // Update the member record in the current adventure
+    const newMembers = members.map(m => 
+        m.id === updatedUser.id 
+        ? { ...m, name: updatedUser.name, img: updatedUser.avatar }
+        : m
+    );
+    setMembers(newMembers);
+    setShowProfileModal(false);
+    await saveToDb({ members: newMembers });
   };
 
   const handleUpdateWeatherLocation = async (day: number, cityKey: string) => {
@@ -459,8 +476,8 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
       await saveToDb({ events: newEvents });
   };
 
-  const handleAddExpense = async (amount: number, item: string, payer: string) => { 
-      const newExpenses = [{ id: generateId(), amount, item, payer, date: new Date().toISOString().split('T')[0], createdAt: new Date().toISOString() }, ...expenses];
+  const handleAddExpense = async (amount: number, item: string, payer: string, category: string) => { 
+      const newExpenses = [{ id: generateId(), amount, item, payer, category, date: new Date().toISOString().split('T')[0], createdAt: new Date().toISOString() }, ...expenses];
       setExpenses(newExpenses);
       await saveToDb({ expenses: newExpenses });
   };
@@ -575,7 +592,14 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
       
       <div className="relative">
          <button onClick={onBack} className="fixed top-4 left-4 z-50 bg-white/80 p-2 rounded-full border-2 border-black shadow-sm active:scale-90"><ArrowRight className="rotate-180" size={16}/></button>
-         <Header tripSettings={tripSettings} currentTheme={currentTheme} members={members} onOpenSettings={() => setShowSettingsModal(true)} />
+         <Header 
+            tripSettings={tripSettings} 
+            currentTheme={currentTheme} 
+            members={members} 
+            currentUser={user}
+            onOpenSettings={() => setShowSettingsModal(true)} 
+            onOpenProfile={() => setShowProfileModal(true)}
+         />
       </div>
 
       <main className="mt-4">
@@ -621,13 +645,14 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
             onUpdateLocation={handleUpdateWeatherLocation}
         />
       )}
-      {showSettingsModal && <SettingsModal settings={tripSettings} totalDays={totalDays} adventureId={adventureId} onClose={() => setShowSettingsModal(false)} onSave={handleSaveSettings} />}
+      {showSettingsModal && <SettingsModal settings={tripSettings} totalDays={totalDays} adventureId={adventureId} currentCoverImage={currentCoverImage} onClose={() => setShowSettingsModal(false)} onSave={handleSaveSettings} />}
       {showEventModal && currentEvent && <EventModal event={currentEvent} isEditing={isEditingEvent} currentTheme={currentTheme} onClose={() => setShowEventModal(false)} onSave={handleSaveEvent} />}
       {showFlightModal && <FlightModal flightData={flightData[editingFlightDirection]} currentTheme={currentTheme} onClose={() => setShowFlightModal(false)} onSave={handleSaveFlights} />}
       {showHotelModal && currentHotel && <HotelModal hotel={currentHotel} currentTheme={currentTheme} onClose={() => setShowHotelModal(false)} onSave={handleSaveHotel} onDelete={handleDeleteHotel} />}
       {showVoucherModal && currentVoucher && <VoucherModal voucher={currentVoucher} currentTheme={currentTheme} onClose={() => setShowVoucherModal(false)} onSave={handleSaveVoucher} onDelete={handleDeleteVoucher} />}
       {showMemberModal && currentMember && <MemberModal member={currentMember} currentTheme={currentTheme} onClose={() => setShowMemberModal(false)} onSave={handleSaveMember} onDelete={handleDeleteMember} />}
       {showJournalModal && <JournalModal members={members} currentTheme={currentTheme} onClose={() => setShowJournalModal(false)} onSave={handleAddJournalEntry} />}
+      {showProfileModal && <ProfileModal user={user} onClose={() => setShowProfileModal(false)} onSave={handleSaveProfile} />}
       {viewingQR && <QRModal image={viewingQR.image} title={viewingQR.title} onClose={() => setViewingQR(null)} />}
     </div>
   );
@@ -648,6 +673,11 @@ const AppNew: React.FC = () => {
   const handleLogin = (u: User) => {
     setUser(u);
     localStorage.setItem('poke_user_session', JSON.stringify(u));
+  };
+
+  const handleUpdateUser = (u: User) => {
+      setUser(u);
+      localStorage.setItem('poke_user_session', JSON.stringify(u));
   };
 
   const handleLogout = () => {
@@ -675,6 +705,7 @@ const AppNew: React.FC = () => {
         user={user} 
         adventureId={currentAdventureId} 
         onBack={() => setCurrentAdventureId(null)} 
+        onUpdateUser={handleUpdateUser}
     />
   );
 };
