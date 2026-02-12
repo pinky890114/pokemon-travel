@@ -56,6 +56,8 @@ export interface Hotel {
   checkIn?: string;
   checkOut?: string;
   notes?: string;
+  bookingFile?: string;
+  bookingFileType?: 'image' | 'pdf';
   createdAt?: any;
 }
 

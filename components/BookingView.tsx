@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Plane, Home, QrCode, Edit3, ArrowDownCircle, Clock, Luggage, MapPin, Plus, StickyNote, Calendar, Ticket, Languages, Sparkles, Loader2, Copy } from 'lucide-react';
+import { Plane, Home, QrCode, Edit3, ArrowDownCircle, Clock, Luggage, MapPin, Plus, StickyNote, Calendar, Ticket, Languages, Sparkles, Loader2, Copy, FileText, Image as ImageIcon } from 'lucide-react';
 import { FlightData, Hotel, Theme, Voucher } from '../types';
 import { POKE_CARD_STYLE, DIGITAL_FONT_STYLE, POKE_INPUT_STYLE, POKE_BTN_STYLE } from '../constants';
 // FIX: Import from utils to avoid file resolution error
@@ -127,43 +127,69 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
             </button>
           </div>
           {hotels.map((h, i) => (
-             <button key={h.id} onClick={() => onOpenHotelModal && onOpenHotelModal(h)} className={`${POKE_CARD_STYLE} flex overflow-hidden w-full text-left active:scale-[0.98] transition-transform`}>
-                <div className="w-10 bg-gray-800 border-r-2 border-black flex items-center justify-center flex-shrink-0 overflow-hidden">
-                   <span className="text-white font-black text-xs tracking-widest uppercase [writing-mode:vertical-rl] rotate-180 py-2 truncate max-h-[140px]">
-                      {h.location.split(',')[0]}
-                   </span>
+             <button key={h.id} onClick={() => onOpenHotelModal && onOpenHotelModal(h)} className={`${POKE_CARD_STYLE} flex overflow-hidden w-full text-left active:scale-[0.98] transition-transform h-32`}>
+                <div className="w-28 bg-gray-200 border-r-2 border-black flex-shrink-0 relative overflow-hidden">
+                    {h.image ? (
+                        <img src={h.image} className="w-full h-full object-cover" alt={h.name} />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gray-800">
+                             <span className="text-white font-black text-xs tracking-widest uppercase [writing-mode:vertical-rl] rotate-180 py-2 truncate max-h-[140px]">
+                                {h.location.split(',')[0]}
+                             </span>
+                        </div>
+                    )}
                 </div>
-                <div className="p-3 flex-1 flex flex-col justify-center min-w-0">
-                   <h4 className="font-black text-gray-800 leading-tight text-lg mb-1 truncate">{h.name}</h4>
-                   <a 
-                     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(h.location)}`}
-                     target="_blank" 
-                     rel="noopener noreferrer"
-                     onClick={(e) => e.stopPropagation()}
-                     className="text-[10px] font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center tracking-tighter uppercase mb-2 truncate"
-                   >
-                     <MapPin size={10} className="mr-1 flex-shrink-0"/>{h.location}
-                   </a>
-                   <div className="flex items-center gap-2 mb-2 w-full">
-                       <div className="flex-1 bg-gray-50 border border-gray-200 rounded px-1.5 py-1 flex flex-col items-center">
-                           <span className="text-[9px] font-bold text-gray-400 leading-none mb-0.5">CHECK-IN</span>
-                           <span className={`text-xs font-black text-gray-700 ${DIGITAL_FONT_STYLE} leading-none`}>{h.checkIn?.replace(/-/g, '/') || '--/--/--'}</span>
+                <div className="p-3 flex-1 flex flex-col justify-between min-w-0 bg-white">
+                   <div>
+                       <div className="flex justify-between items-start">
+                           <h4 className="font-black text-gray-800 leading-tight text-lg truncate mr-1">{h.name}</h4>
+                           {h.bookingFile && (
+                               <div 
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (h.bookingFileType === 'pdf') {
+                                            const link = document.createElement('a');
+                                            link.href = h.bookingFile;
+                                            link.download = `booking_${h.name.replace(/\s+/g, '_')}.pdf`;
+                                            link.click();
+                                        } else {
+                                            onShowQR && onShowQR(h.bookingFile, `Booking: ${h.name}`);
+                                        }
+                                    }}
+                                    className="text-blue-500 hover:text-blue-700 bg-blue-50 p-1 rounded border border-blue-200"
+                                    title="View Booking"
+                               >
+                                    <FileText size={16} />
+                               </div>
+                           )}
                        </div>
-                       <div className="text-gray-300 font-black">→</div>
-                       <div className="flex-1 bg-gray-50 border border-gray-200 rounded px-1.5 py-1 flex flex-col items-center">
-                           <span className="text-[9px] font-bold text-gray-400 leading-none mb-0.5">CHECK-OUT</span>
-                           <span className={`text-xs font-black text-gray-700 ${DIGITAL_FONT_STYLE} leading-none`}>{h.checkOut?.replace(/-/g, '/') || '--/--/--'}</span>
+                       <a 
+                         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(h.location)}`}
+                         target="_blank" 
+                         rel="noopener noreferrer"
+                         onClick={(e) => e.stopPropagation()}
+                         className="text-[10px] font-bold text-gray-500 flex items-center tracking-tighter uppercase truncate mt-0.5"
+                       >
+                         <MapPin size={10} className="mr-1 flex-shrink-0"/>{h.location}
+                       </a>
+                   </div>
+                   
+                   <div className="flex items-center gap-2 mt-1 w-full">
+                       <div className="flex-1 bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5 flex flex-col items-center">
+                           <span className="text-[8px] font-bold text-gray-400 leading-none mb-0.5">IN</span>
+                           <span className={`text-xs font-black text-gray-700 ${DIGITAL_FONT_STYLE} leading-none`}>{h.checkIn?.slice(5).replace('-', '/') || '--/--'}</span>
+                       </div>
+                       <div className="text-gray-300 font-black text-[10px]">></div>
+                       <div className="flex-1 bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5 flex flex-col items-center">
+                           <span className="text-[8px] font-bold text-gray-400 leading-none mb-0.5">OUT</span>
+                           <span className={`text-xs font-black text-gray-700 ${DIGITAL_FONT_STYLE} leading-none`}>{h.checkOut?.slice(5).replace('-', '/') || '--/--'}</span>
                        </div>
                    </div>
-                   {h.bookingCode && (
-                     <div className="inline-flex items-center text-[10px] bg-gray-100 px-2 py-1 rounded border border-gray-300 font-mono font-bold text-black self-start mb-2">
-                        {h.bookingCode}
-                     </div>
-                   )}
+                   
                    {h.notes && (
-                      <div className="text-[10px] text-gray-500 bg-yellow-50 p-2 rounded border border-dashed border-yellow-300 font-bold leading-tight flex items-start w-full">
-                        <StickyNote size={10} className="mr-1 mt-0.5 flex-shrink-0 text-yellow-600"/>
-                        <span className="break-all">{h.notes}</span>
+                      <div className="text-[9px] text-gray-500 bg-yellow-50 px-1.5 py-1 rounded border border-dashed border-yellow-300 font-bold leading-tight flex items-center w-full mt-2 truncate">
+                        <StickyNote size={8} className="mr-1 flex-shrink-0 text-yellow-600"/>
+                        <span className="truncate">{h.notes}</span>
                       </div>
                    )}
                 </div>

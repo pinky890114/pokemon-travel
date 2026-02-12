@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { X, Sun, Plus, Minus, Trash2, Upload, Ticket, QrCode, Check, Camera, Copy, Key, User as UserIcon, RefreshCw, MapPin } from 'lucide-react';
+import { X, Sun, Plus, Minus, Trash2, Upload, Ticket, QrCode, Check, Camera, Copy, Key, User as UserIcon, RefreshCw, MapPin, FileText, Image as ImageIcon } from 'lucide-react';
 import { POKE_CARD_STYLE, POKE_INPUT_STYLE, POKE_BTN_STYLE, DIGITAL_FONT_STYLE, POKEMON_THEMES, CITY_WEATHER_DB } from '../constants';
 import { TripSettings, ItineraryEvent, FlightSegment, Theme, Hotel, Voucher, Member, JournalEntry, WeatherInfo, User } from '../types';
 import { getPokemonSprite, compressImage } from '../utils';
@@ -410,10 +410,44 @@ export const FlightModal: React.FC<{ flightData: FlightSegment[]; currentTheme: 
 
 export const HotelModal: React.FC<{ hotel: Hotel; currentTheme: Theme; onClose: () => void; onSave: (h: Hotel) => void; onDelete: (id: string) => void }> = ({ hotel, currentTheme, onClose, onSave, onDelete }) => {
     const [localHotel, setLocalHotel] = React.useState(hotel);
+    const imageInputRef = React.useRef<HTMLInputElement>(null);
+    const bookingFileInputRef = React.useRef<HTMLInputElement>(null);
+
+    const handleCoverImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        try {
+          const compressed = await compressImage(file, 600, 0.7);
+          setLocalHotel({...localHotel, image: compressed});
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    };
+
+    const handleBookingFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        if (file.type === 'application/pdf') {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => {
+                setLocalHotel({...localHotel, bookingFile: reader.result as string, bookingFileType: 'pdf'});
+            };
+        } else {
+            try {
+                const compressed = await compressImage(file, 800, 0.7);
+                setLocalHotel({...localHotel, bookingFile: compressed, bookingFileType: 'image'});
+            } catch (err) {
+                console.error(err);
+            }
+        }
+      }
+    };
   
     return (
       <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
-        <div className={`${POKE_CARD_STYLE} w-full max-w-sm p-6`}>
+        <div className={`${POKE_CARD_STYLE} w-full max-w-sm p-6 max-h-[90vh] overflow-y-auto`}>
            <div className="flex justify-between items-center mb-6 border-b-2 border-black pb-2">
              <h3 className="font-black text-xl">{hotel.id ? '編輯住宿' : '新增住宿'}</h3>
              <button onClick={onClose}><X size={20}/></button>
@@ -432,6 +466,49 @@ export const HotelModal: React.FC<{ hotel: Hotel; currentTheme: Theme; onClose: 
                         <label className="text-[10px] font-bold text-gray-500 uppercase">Check-out</label>
                        <input type="date" value={localHotel.checkOut} onChange={e => setLocalHotel({...localHotel, checkOut: e.target.value})} className={`w-full p-2 text-xs ${POKE_INPUT_STYLE}`} />
                    </div>
+               </div>
+
+               {/* Cover Image Upload */}
+               <div className="border-2 border-dashed border-gray-300 rounded-xl p-3 bg-gray-50 relative group">
+                   <label className="text-[10px] font-bold text-gray-500 block mb-1">HOTEL COVER PHOTO</label>
+                   {localHotel.image ? (
+                        <div className="relative h-24">
+                           <img src={localHotel.image} className="w-full h-full object-cover rounded border border-gray-200" alt="Cover" />
+                           <button onClick={() => setLocalHotel({...localHotel, image: ''})} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 shadow"><X size={10}/></button>
+                        </div>
+                   ) : (
+                        <div className="h-24 flex flex-col items-center justify-center text-gray-400">
+                             <ImageIcon size={20} className="mb-1"/>
+                             <span className="text-[9px]">Upload Image</span>
+                        </div>
+                   )}
+                   <input type="file" ref={imageInputRef} onChange={handleCoverImageUpload} className="hidden" accept="image/*" />
+                   {!localHotel.image && <button onClick={() => imageInputRef.current?.click()} className="absolute inset-0 w-full h-full opacity-0"></button>}
+               </div>
+
+               {/* Booking File Upload */}
+               <div className="border-2 border-dashed border-gray-300 rounded-xl p-3 bg-gray-50 relative group">
+                   <label className="text-[10px] font-bold text-gray-500 block mb-1">BOOKING CONFIRMATION (PDF/IMG)</label>
+                   {localHotel.bookingFile ? (
+                        <div className="relative h-24 flex items-center justify-center bg-white border border-gray-200 rounded">
+                           {localHotel.bookingFileType === 'pdf' ? (
+                               <div className="flex flex-col items-center text-red-500">
+                                   <FileText size={32} />
+                                   <span className="text-[9px] font-bold mt-1">PDF Uploaded</span>
+                               </div>
+                           ) : (
+                               <img src={localHotel.bookingFile} className="w-full h-full object-contain" alt="Booking" />
+                           )}
+                           <button onClick={() => setLocalHotel({...localHotel, bookingFile: undefined, bookingFileType: undefined})} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 shadow"><X size={10}/></button>
+                        </div>
+                   ) : (
+                        <div className="h-24 flex flex-col items-center justify-center text-gray-400">
+                             <Upload size={20} className="mb-1"/>
+                             <span className="text-[9px]">Upload Voucher</span>
+                        </div>
+                   )}
+                   <input type="file" ref={bookingFileInputRef} onChange={handleBookingFileUpload} className="hidden" accept="image/*,application/pdf" />
+                   {!localHotel.bookingFile && <button onClick={() => bookingFileInputRef.current?.click()} className="absolute inset-0 w-full h-full opacity-0"></button>}
                </div>
 
                <textarea value={localHotel.notes} onChange={e => setLocalHotel({...localHotel, notes: e.target.value})} placeholder="Notes..." className={`w-full p-2 h-16 resize-none ${POKE_INPUT_STYLE}`} />
