@@ -95,12 +95,18 @@ export const subscribeToAdventure = (adventureId: string, onUpdate: (data: any) 
     return onSnapshot(advRef, (doc) => {
         if (doc.exists()) {
             const fullDoc = doc.data() as { data: any; metadata: AdventureMetadata };
-            onUpdate(fullDoc.data);
+            // Merge metadata info (like coverImage) into the data object for the frontend to use easily if needed,
+            // though usually we pass them separately.
+            const resultData = {
+                ...fullDoc.data,
+                coverImage: fullDoc.metadata.coverImage // Ensure coverImage is available in data stream
+            };
+            onUpdate(resultData);
         }
     });
 };
 
-export const updateAdventureData = async (adventureId: string, data: any) => {
+export const updateAdventureData = async (adventureId: string, data: any, coverImage?: string) => {
     try {
         const advRef = doc(db, ADVENTURE_COLLECTION, adventureId);
         
@@ -108,10 +114,17 @@ export const updateAdventureData = async (adventureId: string, data: any) => {
             data: data
         });
         
+        // Update metadata fields if present
+        const metadataUpdates: any = {};
         if (data.tripSettings?.title) {
-             await updateDoc(advRef, {
-                'metadata.title': data.tripSettings.title
-            });
+            metadataUpdates['metadata.title'] = data.tripSettings.title;
+        }
+        if (coverImage) {
+            metadataUpdates['metadata.coverImage'] = coverImage;
+        }
+
+        if (Object.keys(metadataUpdates).length > 0) {
+            await updateDoc(advRef, metadataUpdates);
         }
     } catch (e) {
         console.error("Error updating adventure:", e);

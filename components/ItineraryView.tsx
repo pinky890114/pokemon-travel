@@ -12,6 +12,7 @@ interface ItineraryViewProps {
   setTotalDays: (days: number) => void;
   tripSettings: TripSettings;
   events: ItineraryEvent[];
+  weatherOverrides?: Record<string, string>; // Add this prop
   onOpenWeather: () => void;
   onAddEvent: (event?: ItineraryEvent) => void;
   onDeleteEvent: (id: string, e: React.MouseEvent) => void;
@@ -21,17 +22,17 @@ interface ItineraryViewProps {
 
 export const ItineraryView: React.FC<ItineraryViewProps> = ({
   activeDay, setActiveDay, totalDays, setTotalDays, tripSettings, events,
-  onOpenWeather, onAddEvent, onDeleteEvent, onGenerateTransport, generatingTransportId
+  weatherOverrides = {}, onOpenWeather, onAddEvent, onDeleteEvent, onGenerateTransport, generatingTransportId
 }) => {
   const dayEvents = events.filter(e => e.date === getDateStrFromDay(activeDay, tripSettings.startDate));
   
-  const cityKey = identifyCityKey(activeDay, dayEvents);
-  const [cityInfo, setCityInfo] = useState<WeatherInfo>(CITY_WEATHER_DB[cityKey]);
+  const cityKey = identifyCityKey(activeDay, dayEvents, weatherOverrides);
+  const [cityInfo, setCityInfo] = useState<WeatherInfo>(CITY_WEATHER_DB[cityKey] || CITY_WEATHER_DB["ZURICH"]);
   const [loadingWeather, setLoadingWeather] = useState(false);
 
   useEffect(() => {
-    const key = identifyCityKey(activeDay, dayEvents);
-    const staticInfo = CITY_WEATHER_DB[key];
+    const key = identifyCityKey(activeDay, dayEvents, weatherOverrides);
+    const staticInfo = CITY_WEATHER_DB[key] || CITY_WEATHER_DB["ZURICH"];
     setCityInfo(staticInfo);
 
     if (staticInfo.lat && staticInfo.lng) {
@@ -43,7 +44,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
         setLoadingWeather(false);
       });
     }
-  }, [activeDay, events]); 
+  }, [activeDay, events, weatherOverrides]); // Add overrides to dependency
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isDown, setIsDown] = useState(false);

@@ -151,7 +151,8 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
       journalEntries: [],
       hotels: [],
       vouchers: [],
-      flightData: INITIAL_FLIGHT_DATA
+      flightData: INITIAL_FLIGHT_DATA,
+      weatherOverrides: {}
     };
 
     try {
@@ -341,6 +342,7 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
   const [vouchers, setVouchers] = useState<Voucher[]>(INITIAL_VOUCHERS);
   const [members, setMembers] = useState<Member[]>(INITIAL_MEMBERS);
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
+  const [weatherOverrides, setWeatherOverrides] = useState<Record<string, string>>({});
 
   // Modals
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -365,7 +367,7 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
 
   const currentTheme = POKEMON_THEMES[(activeDay - 1) % POKEMON_THEMES.length];
   const currentDayEvents = events.filter(e => e.date === getDateStrFromDay(activeDay, tripSettings.startDate));
-  const currentWeather = getCityWeather(activeDay, currentDayEvents);
+  const currentWeather = getCityWeather(activeDay, currentDayEvents, weatherOverrides);
 
   // Real-time Subscription to Firebase
   useEffect(() => {
@@ -381,6 +383,7 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
           if (data.vouchers) setVouchers(data.vouchers);
           if (data.members) setMembers(data.members);
           if (data.journalEntries) setJournalEntries(data.journalEntries);
+          if (data.weatherOverrides) setWeatherOverrides(data.weatherOverrides);
           setLoading(false);
       });
       return () => unsubscribe();
@@ -400,6 +403,7 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
           vouchers,
           members,
           journalEntries,
+          weatherOverrides,
           ...overrides // Allow overriding state that hasn't updated yet in the closure
       };
       await updateAdventureData(adventureId, dataToSave);
@@ -410,6 +414,17 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
     setTotalDays(days);
     setShowSettingsModal(false);
     await saveToDb({ tripSettings: settings, totalDays: days });
+  };
+
+  const handleUpdateWeatherLocation = async (day: number, cityKey: string) => {
+      const newOverrides = { ...weatherOverrides };
+      if (!cityKey) {
+          delete newOverrides[String(day)];
+      } else {
+          newOverrides[String(day)] = cityKey;
+      }
+      setWeatherOverrides(newOverrides);
+      await saveToDb({ weatherOverrides: newOverrides });
   };
 
   const handleEditFlights = (direction: 'outbound' | 'inbound') => { setEditingFlightDirection(direction); setShowFlightModal(true); };
@@ -565,7 +580,20 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
 
       <main className="mt-4">
         {activeTab === 'itinerary' && (
-          <ItineraryView activeDay={activeDay} setActiveDay={setActiveDay} totalDays={totalDays} setTotalDays={setTotalDays} tripSettings={tripSettings} events={events} onOpenWeather={() => setShowWeatherModal(true)} onAddEvent={handleOpenAddEvent} onDeleteEvent={handleDeleteEvent} onGenerateTransport={handleGenerateTransport} generatingTransportId={generatingTransportId} />
+          <ItineraryView 
+             activeDay={activeDay} 
+             setActiveDay={setActiveDay} 
+             totalDays={totalDays} 
+             setTotalDays={setTotalDays} 
+             tripSettings={tripSettings} 
+             events={events} 
+             weatherOverrides={weatherOverrides}
+             onOpenWeather={() => setShowWeatherModal(true)} 
+             onAddEvent={handleOpenAddEvent} 
+             onDeleteEvent={handleDeleteEvent} 
+             onGenerateTransport={handleGenerateTransport} 
+             generatingTransportId={generatingTransportId} 
+          />
         )}
         {activeTab === 'booking' && (
           <BookingView currentTheme={currentTheme} flightData={flightData} hotels={hotels} vouchers={vouchers} onEditFlights={handleEditFlights} onOpenHotelModal={handleOpenHotelModal} onOpenVoucherModal={handleOpenVoucherModal} onShowQR={(image, title) => setViewingQR({image, title})} />
@@ -584,7 +612,15 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} currentTheme={currentTheme} />
 
       {/* Modals Injection */}
-      {showWeatherModal && <WeatherModal weather={currentWeather} onClose={() => setShowWeatherModal(false)} />}
+      {showWeatherModal && (
+        <WeatherModal 
+            weather={currentWeather} 
+            day={activeDay}
+            currentOverride={weatherOverrides[String(activeDay)]}
+            onClose={() => setShowWeatherModal(false)} 
+            onUpdateLocation={handleUpdateWeatherLocation}
+        />
+      )}
       {showSettingsModal && <SettingsModal settings={tripSettings} totalDays={totalDays} adventureId={adventureId} onClose={() => setShowSettingsModal(false)} onSave={handleSaveSettings} />}
       {showEventModal && currentEvent && <EventModal event={currentEvent} isEditing={isEditingEvent} currentTheme={currentTheme} onClose={() => setShowEventModal(false)} onSave={handleSaveEvent} />}
       {showFlightModal && <FlightModal flightData={flightData[editingFlightDirection]} currentTheme={currentTheme} onClose={() => setShowFlightModal(false)} onSave={handleSaveFlights} />}

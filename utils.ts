@@ -99,7 +99,13 @@ export const getDayInfo = (dayIndex: number, startDateStr: string) => {
   return { dateStr: `${month}/${date}`, fullDate: dateStr };
 };
 
-export const identifyCityKey = (day: number, dayEvents: ItineraryEvent[] = []): string => {
+export const identifyCityKey = (day: number, dayEvents: ItineraryEvent[] = [], overrides: Record<string, string> = {}): string => {
+  // Priority 0: Check manual overrides
+  const dayKey = String(day);
+  if (overrides && overrides[dayKey]) {
+      return overrides[dayKey];
+  }
+
   // Priority 1: Check events for keywords
   for (const event of dayEvents) {
     const textToCheck = (event.title + " " + (event.location || "")).toLowerCase();
@@ -123,8 +129,8 @@ export const identifyCityKey = (day: number, dayEvents: ItineraryEvent[] = []): 
   return "ROME";
 };
 
-export const getCityWeather = (day: number, dayEvents: ItineraryEvent[] = []): WeatherInfo => {
-  const key = identifyCityKey(day, dayEvents);
+export const getCityWeather = (day: number, dayEvents: ItineraryEvent[] = [], overrides: Record<string, string> = {}): WeatherInfo => {
+  const key = identifyCityKey(day, dayEvents, overrides);
   return CITY_WEATHER_DB[key] || CITY_WEATHER_DB["ZURICH"];
 };
 
