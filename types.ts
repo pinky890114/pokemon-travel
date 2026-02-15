@@ -73,6 +73,12 @@ export interface Voucher {
   createdAt?: any;
 }
 
+export interface PackingItem {
+  id: string;
+  text: string;
+  checked: boolean;
+}
+
 export interface ItineraryEvent {
   id?: string;
   date: string;

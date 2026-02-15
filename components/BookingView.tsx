@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Plane, Home, QrCode, Edit3, ArrowDownCircle, Clock, Luggage, MapPin, Plus, StickyNote, Calendar, Ticket, Languages, Sparkles, Loader2, Copy, FileText, Image as ImageIcon } from 'lucide-react';
-import { FlightData, Hotel, Theme, Voucher } from '../types';
+import { Plane, Home, QrCode, Edit3, ArrowDownCircle, Clock, Luggage, MapPin, Plus, StickyNote, Calendar, Ticket, Languages, Sparkles, Loader2, Copy, FileText, Image as ImageIcon, CheckSquare, Trash2, X } from 'lucide-react';
+import { FlightData, Hotel, Theme, Voucher, PackingItem } from '../types';
 import { POKE_CARD_STYLE, DIGITAL_FONT_STYLE, POKE_INPUT_STYLE, POKE_BTN_STYLE } from '../constants';
 import { translateText } from '../utils';
 
@@ -10,15 +10,25 @@ interface BookingViewProps {
   flightData: FlightData;
   hotels?: Hotel[];
   vouchers?: Voucher[];
+  packingList?: PackingItem[];
   onEditFlights: (direction: 'outbound' | 'inbound') => void;
   onOpenHotelModal?: (hotel?: Hotel) => void;
   onOpenVoucherModal?: (voucher?: Voucher) => void;
   onShowQR?: (image: string, title: string) => void;
+  onAddPackingItem?: (text: string) => void;
+  onTogglePackingItem?: (id: string) => void;
+  onDeletePackingItem?: (id: string) => void;
+  onImportDefaults?: () => void;
 }
 
-export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightData, hotels = [], vouchers = [], onEditFlights, onOpenHotelModal, onOpenVoucherModal, onShowQR }) => {
-  const [bookingTab, setBookingTab] = useState<'flight' | 'hotel' | 'ticket' | 'translator'>('flight');
+export const BookingView: React.FC<BookingViewProps> = ({ 
+    currentTheme, flightData, hotels = [], vouchers = [], packingList = [],
+    onEditFlights, onOpenHotelModal, onOpenVoucherModal, onShowQR,
+    onAddPackingItem, onTogglePackingItem, onDeletePackingItem, onImportDefaults
+}) => {
+  const [bookingTab, setBookingTab] = useState<'flight' | 'hotel' | 'ticket' | 'luggage' | 'translator'>('flight');
   const [flightDirection, setFlightDirection] = useState<'outbound' | 'inbound'>('outbound');
+  const [newItemText, setNewItemText] = useState('');
 
   const [translationInput, setTranslationInput] = useState('');
   const [translationResult, setTranslationResult] = useState('');
@@ -45,6 +55,13 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
     } finally {
         setTranslationLoading(false);
     }
+  };
+
+  const handleAddItem = () => {
+      if (newItemText.trim() && onAddPackingItem) {
+          onAddPackingItem(newItemText.trim());
+          setNewItemText('');
+      }
   };
 
   useEffect(() => {
@@ -84,6 +101,7 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
           { id: 'flight', label: '機票', icon: Plane }, 
           { id: 'hotel', label: '住宿', icon: Home }, 
           { id: 'ticket', label: '憑證', icon: QrCode },
+          { id: 'luggage', label: '行李', icon: Luggage },
           { id: 'translator', label: '翻譯', icon: Languages }
         ].map(t => (
           <button key={t.id} onClick={() => setBookingTab(t.id as any)} className={`flex-1 min-w-[80px] py-2 px-2 rounded-lg text-sm font-bold flex items-center justify-center transition-all whitespace-nowrap ${bookingTab === t.id ? `${currentTheme.color} text-white border-2 border-black shadow-sm` : 'text-gray-500'}`}>
@@ -284,6 +302,67 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
               背包裡空空如也...
             </div>
           )}
+        </div>
+      )}
+
+      {bookingTab === 'luggage' && (
+        <div className="space-y-4">
+           {/* Add Input */}
+           <div className={`${POKE_CARD_STYLE} p-2 flex items-center bg-white`}>
+              <input 
+                 value={newItemText}
+                 onChange={(e) => setNewItemText(e.target.value)}
+                 onKeyDown={(e) => e.key === 'Enter' && handleAddItem()}
+                 placeholder="新增行李項目..."
+                 className={`flex-1 p-2 text-sm font-bold border-none outline-none bg-transparent`}
+              />
+              <button 
+                 onClick={handleAddItem}
+                 disabled={!newItemText.trim()}
+                 className={`ml-2 p-2 bg-[#3B4CCA] text-white rounded-lg disabled:opacity-50`}
+              >
+                  <Plus size={16} />
+              </button>
+           </div>
+           
+           <div className="flex justify-end mb-2">
+             <button onClick={onImportDefaults} className="text-[10px] font-bold text-blue-500 hover:underline flex items-center bg-blue-50 px-2 py-1 rounded-full border border-blue-200 active:scale-95 transition-transform">
+                 <Sparkles size={10} className="mr-1"/> 匯入常用清單
+             </button>
+           </div>
+
+           {/* List */}
+           <div className="space-y-2">
+               {packingList.map((item) => (
+                   <div 
+                      key={item.id} 
+                      className={`flex items-center justify-between p-3 bg-white border-2 border-black rounded-xl shadow-[2px_2px_0px_#000] transition-all ${item.checked ? 'opacity-50 bg-gray-100' : ''}`}
+                   >
+                       <button 
+                          onClick={() => onTogglePackingItem && onTogglePackingItem(item.id)}
+                          className="flex items-center flex-1 text-left"
+                       >
+                           <div className={`w-6 h-6 rounded border-2 border-black flex items-center justify-center mr-3 ${item.checked ? 'bg-blue-500 border-blue-600' : 'bg-white'}`}>
+                               {item.checked && <CheckSquare size={14} className="text-white" />}
+                           </div>
+                           <span className={`text-sm font-black ${item.checked ? 'line-through text-gray-400' : 'text-gray-800'}`}>
+                               {item.text}
+                           </span>
+                       </button>
+                       <button 
+                          onClick={() => onDeletePackingItem && onDeletePackingItem(item.id)}
+                          className="text-gray-300 hover:text-red-500 p-1"
+                       >
+                           <Trash2 size={16} />
+                       </button>
+                   </div>
+               ))}
+               {packingList.length === 0 && (
+                  <div className={`${POKE_CARD_STYLE} p-8 text-center bg-gray-50 text-gray-400 font-bold`}>
+                      清單是空的，加點東西吧！
+                  </div>
+               )}
+           </div>
         </div>
       )}
 

@@ -15,9 +15,9 @@ import { JournalSection } from './components/JournalSection';
 import { WeatherModal, SettingsModal, EventModal, FlightModal, HotelModal, VoucherModal, QRModal, MemberModal, JournalModal, ProfileModal } from './components/Modals';
 
 import { 
-  TripSettings, ItineraryEvent, FlightData, Expense, FlightSegment, Hotel, Voucher, Member, JournalEntry, User, AdventureMetadata
+  TripSettings, ItineraryEvent, FlightData, Expense, FlightSegment, Hotel, Voucher, Member, JournalEntry, User, AdventureMetadata, PackingItem
 } from './types';
-import { POKEMON_THEMES, INITIAL_FLIGHT_DATA, INITIAL_HOTELS, INITIAL_VOUCHERS, INITIAL_MEMBERS, POKE_CARD_STYLE, POKE_INPUT_STYLE, POKE_BTN_STYLE } from './constants';
+import { POKEMON_THEMES, INITIAL_FLIGHT_DATA, INITIAL_HOTELS, INITIAL_VOUCHERS, INITIAL_MEMBERS, POKE_CARD_STYLE, POKE_INPUT_STYLE, POKE_BTN_STYLE, DEFAULT_PACKING_ITEMS } from './constants';
 import { getDateStrFromDay, calculateLevelFromExp, getCityWeather } from './utils';
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -147,6 +147,7 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
       journalEntries: [],
       hotels: [],
       vouchers: [],
+      packingList: DEFAULT_PACKING_ITEMS.map(text => ({ id: generateId(), text, checked: false })),
       flightData: INITIAL_FLIGHT_DATA,
       weatherOverrides: {}
     };
@@ -391,6 +392,7 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
   const [hotels, setHotels] = useState<Hotel[]>(INITIAL_HOTELS);
   const [vouchers, setVouchers] = useState<Voucher[]>(INITIAL_VOUCHERS);
   const [members, setMembers] = useState<Member[]>(INITIAL_MEMBERS);
+  const [packingList, setPackingList] = useState<PackingItem[]>([]);
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
   const [weatherOverrides, setWeatherOverrides] = useState<Record<string, string>>({});
   const [currentCoverImage, setCurrentCoverImage] = useState('');
@@ -431,6 +433,7 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
           if (data.hotels) setHotels(data.hotels);
           if (data.vouchers) setVouchers(data.vouchers);
           if (data.members) setMembers(data.members);
+          if (data.packingList) setPackingList(data.packingList);
           if (data.journalEntries) setJournalEntries(data.journalEntries);
           if (data.weatherOverrides) setWeatherOverrides(data.weatherOverrides);
           if (data.coverImage) setCurrentCoverImage(data.coverImage); 
@@ -449,6 +452,7 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
           hotels,
           vouchers,
           members,
+          packingList,
           journalEntries,
           weatherOverrides,
           ...overrides 
@@ -625,6 +629,41 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
       await saveToDb({ journalEntries: newEntries });
   };
 
+  // Packing List Handlers
+  const handleAddPackingItem = async (text: string) => {
+      const newItem: PackingItem = { id: generateId(), text, checked: false };
+      const newList = [...packingList, newItem];
+      setPackingList(newList);
+      await saveToDb({ packingList: newList });
+  };
+
+  const handleTogglePackingItem = async (id: string) => {
+      const newList = packingList.map(item => item.id === id ? { ...item, checked: !item.checked } : item);
+      setPackingList(newList);
+      await saveToDb({ packingList: newList });
+  };
+
+  const handleDeletePackingItem = async (id: string) => {
+      const newList = packingList.filter(item => item.id !== id);
+      setPackingList(newList);
+      await saveToDb({ packingList: newList });
+  };
+  
+  const handleImportDefaultPackingItems = async () => {
+      const existingTexts = new Set(packingList.map(p => p.text));
+      const newItems = DEFAULT_PACKING_ITEMS
+        .filter(text => !existingTexts.has(text))
+        .map(text => ({ id: generateId(), text, checked: false }));
+      
+      if (newItems.length > 0) {
+        const newList = [...packingList, ...newItems];
+        setPackingList(newList);
+        await saveToDb({ packingList: newList });
+      } else {
+        alert("常用項目已全部在清單中囉！");
+      }
+  };
+
   return (
     <div className={`min-h-screen ${currentTheme.bgLight} font-['DotGothic16'] text-gray-700 max-w-md mx-auto shadow-2xl relative overflow-x-hidden transition-colors duration-300`}>
       {loading && (
@@ -663,7 +702,21 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
           />
         )}
         {activeTab === 'booking' && (
-          <BookingView currentTheme={currentTheme} flightData={flightData} hotels={hotels} vouchers={vouchers} onEditFlights={handleEditFlights} onOpenHotelModal={handleOpenHotelModal} onOpenVoucherModal={handleOpenVoucherModal} onShowQR={(image, title) => setViewingQR({image, title})} />
+          <BookingView 
+             currentTheme={currentTheme} 
+             flightData={flightData} 
+             hotels={hotels} 
+             vouchers={vouchers}
+             packingList={packingList}
+             onEditFlights={handleEditFlights} 
+             onOpenHotelModal={handleOpenHotelModal} 
+             onOpenVoucherModal={handleOpenVoucherModal} 
+             onShowQR={(image, title) => setViewingQR({image, title})}
+             onAddPackingItem={handleAddPackingItem}
+             onTogglePackingItem={handleTogglePackingItem}
+             onDeletePackingItem={handleDeletePackingItem}
+             onImportDefaults={handleImportDefaultPackingItems}
+          />
         )}
         {activeTab === 'ledger' && (
           <LedgerView currentTheme={currentTheme} expenses={expenses} members={members} onAddExpense={handleAddExpense} />
@@ -707,7 +760,11 @@ const App: React.FC = () => {
   useEffect(() => {
     const savedUser = localStorage.getItem('poke_user_session');
     if (savedUser) {
-        setUser(JSON.parse(savedUser));
+        try {
+            setUser(JSON.parse(savedUser));
+        } catch (e) {
+            console.error("Failed to parse user session", e);
+        }
     }
   }, []);
 

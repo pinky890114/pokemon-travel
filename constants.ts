@@ -7,6 +7,24 @@ export const POKE_BTN_STYLE = "border-2 border-black shadow-[2px_2px_0px_0px_rgb
 export const POKE_INPUT_STYLE = "font-['DotGothic16'] border-2 border-gray-300 focus:border-black bg-white text-black shadow-none rounded-lg outline-none transition-all placeholder:text-gray-400";
 export const DIGITAL_FONT_STYLE = "font-['VT323'] text-lg tracking-wider";
 
+export const DEFAULT_PACKING_ITEMS = [
+  "護照 / 簽證 / 身分證",
+  "機票 / 交通票券 / 訂房憑證",
+  "現金 (外幣/台幣) / 信用卡",
+  "手機 / 充電線 / 萬用轉接頭",
+  "行動電源 / 備用電池",
+  "SIM卡 / 取卡針 / 漫遊設定",
+  "換洗衣物 / 內衣褲 / 襪子",
+  "睡衣 / 拖鞋",
+  "盥洗用具 (牙刷/牙膏/洗面乳)",
+  "保養品 / 化妝品 / 防曬乳",
+  "個人藥品 (感冒/腸胃/止痛/暈車)",
+  "衛生紙 / 濕紙巾 / 衛生棉",
+  "雨具 (折疊傘/雨衣)",
+  "塑膠袋 / 夾鏈袋 (裝髒衣/液體)",
+  "筆 / 筆記本"
+];
+
 export const CITY_WEATHER_DB: Record<string, WeatherInfo> = {
   "TAOYUAN": { name: "TAOYUAN", temp: 25, minTemp: 20, maxTemp: 28, condition: "cloudy", icon: "☁️", type: "city", sunrise: "06:00", sunset: "18:00", lat: 25.0722, lng: 121.2256 },
   "TAIPEI": { name: "TAIPEI", temp: 26, minTemp: 22, maxTemp: 30, condition: "rain", icon: "🌧️", type: "city", sunrise: "06:00", sunset: "18:00", lat: 25.0330, lng: 121.5654 },
