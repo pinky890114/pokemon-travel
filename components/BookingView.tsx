@@ -53,6 +53,30 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
     }
   }, [translationResult]);
 
+  const openPdf = (dataUrl: string) => {
+      try {
+          const arr = dataUrl.split(',');
+          const mimeMatch = arr[0].match(/:(.*?);/);
+          const mime = mimeMatch ? mimeMatch[1] : 'application/pdf';
+          const bstr = atob(arr[1]);
+          let n = bstr.length;
+          const u8arr = new Uint8Array(n);
+          while (n--) {
+              u8arr[n] = bstr.charCodeAt(n);
+          }
+          const blob = new Blob([u8arr], { type: mime });
+          const url = URL.createObjectURL(blob);
+          
+          const newWindow = window.open(url, '_blank');
+          if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
+               alert("請允許開啟彈跳視窗以檢視 PDF，或嘗試長按連結開啟。");
+          }
+      } catch (e) {
+          console.error("Error opening PDF", e);
+          alert("無法開啟 PDF 檔案，檔案可能已損壞。");
+      }
+  };
+
   return (
     <div className="px-6 space-y-6 pb-40 pt-4 animate-in fade-in">
       <div className="flex bg-white/50 p-2 rounded-xl border-2 border-black/10 overflow-x-auto no-scrollbar">
@@ -147,10 +171,7 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         if (h.bookingFileType === 'pdf') {
-                                            const link = document.createElement('a');
-                                            link.href = h.bookingFile;
-                                            link.download = `booking_${h.name.replace(/\s+/g, '_')}.pdf`;
-                                            link.click();
+                                            openPdf(h.bookingFile);
                                         } else {
                                             onShowQR && onShowQR(h.bookingFile, `Booking: ${h.name}`);
                                         }
