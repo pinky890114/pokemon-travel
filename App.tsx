@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Loader2, Plus, LogOut, Map, ArrowRight, Copy, Check, Users, RefreshCw, AlertTriangle, Trash2, Edit2 } from 'lucide-react';
 
+import { generateTransportSuggestion } from './utils';
 import { createAdventureInDb, getUserAdventures, joinAdventureInDb, subscribeToAdventure, updateAdventureData, deleteAdventure } from './services/dbService';
 
 import { Header } from './components/Header';
@@ -15,7 +17,7 @@ import { WeatherModal, SettingsModal, EventModal, FlightModal, HotelModal, Vouch
 import { 
   TripSettings, ItineraryEvent, FlightData, Expense, FlightSegment, Hotel, Voucher, Member, JournalEntry, User, AdventureMetadata
 } from './types';
-import { POKEMON_THEMES, INITIAL_FLIGHT_DATA, INITIAL_HOTELS, INITIAL_VOUCHERS, INITIAL_MEMBERS, POKE_CARD_STYLE, POKE_INPUT_STYLE, POKE_BTN_STYLE, DIGITAL_FONT_STYLE } from './constants';
+import { POKEMON_THEMES, INITIAL_FLIGHT_DATA, INITIAL_HOTELS, INITIAL_VOUCHERS, INITIAL_MEMBERS, POKE_CARD_STYLE, POKE_INPUT_STYLE, POKE_BTN_STYLE } from './constants';
 import { getDateStrFromDay, calculateLevelFromExp, getCityWeather } from './utils';
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -50,7 +52,7 @@ const LoginScreen: React.FC<{ onLogin: (user: User) => void }> = ({ onLogin }) =
                 <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" className="w-12 h-12" alt="Logo" />
              </div>
              <h1 className="text-3xl font-black text-gray-800 tracking-tighter">
-                ADVENTURE LOG
+                ADVENTURE LOG <span className="text-red-500 text-lg align-top">V2</span>
              </h1>
              <p className="text-sm font-bold text-gray-500">請輸入訓練家名稱以開始</p>
           </div>
@@ -233,8 +235,8 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
 
          <div className="mb-6">
             <h3 className="text-sm font-black mb-3 flex items-center justify-between text-black uppercase tracking-widest">
-                <div className="flex items-center"><Map size={14} className="mr-1.5"/>Adventuring</div>
-                <button onClick={loadAdventures} disabled={isLoading} className="text-gray-400 hover:text-black active:rotate-180 transition-all"><RefreshCw size={12}/></button>
+                <div className="flex items-center"><Map size={16} className="mr-2"/>Adventuring</div>
+                <button onClick={loadAdventures} disabled={isLoading} className="text-gray-400 hover:text-black active:rotate-180 transition-all"><RefreshCw size={14}/></button>
             </h3>
             
             {dbError && (
@@ -408,6 +410,7 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
   const [currentEvent, setCurrentEvent] = useState<ItineraryEvent | null>(null);
   const [isEditingEvent, setIsEditingEvent] = useState(false);
   const [editingFlightDirection, setEditingFlightDirection] = useState<'outbound' | 'inbound'>('outbound');
+  const [generatingTransportId, setGeneratingTransportId] = useState<string | null>(null);
   const [currentHotel, setCurrentHotel] = useState<Hotel | null>(null);
   const [currentVoucher, setCurrentVoucher] = useState<Voucher | null>(null);
   const [currentMember, setCurrentMember] = useState<Member | null>(null);
@@ -430,7 +433,7 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
           if (data.members) setMembers(data.members);
           if (data.journalEntries) setJournalEntries(data.journalEntries);
           if (data.weatherOverrides) setWeatherOverrides(data.weatherOverrides);
-          if (data.coverImage) setCurrentCoverImage(data.coverImage);
+          if (data.coverImage) setCurrentCoverImage(data.coverImage); 
           setLoading(false);
       });
       return () => unsubscribe();
@@ -448,7 +451,7 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
           members,
           journalEntries,
           weatherOverrides,
-          ...overrides
+          ...overrides 
       };
       await updateAdventureData(adventureId, dataToSave, coverImageOverride);
   };
@@ -461,15 +464,28 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
     await saveToDb({ tripSettings: settings, totalDays: days }, coverImage);
   };
 
+  const handleSaveProfile = async (updatedUser: User) => {
+    onUpdateUser(updatedUser); 
+    
+    const newMembers = members.map(m => 
+        m.id === updatedUser.id 
+        ? { ...m, name: updatedUser.name, img: updatedUser.avatar }
+        : m
+    );
+    setMembers(newMembers);
+    setShowProfileModal(false);
+    await saveToDb({ members: newMembers });
+  };
+
   const handleUpdateWeatherLocation = async (day: number, cityKey: string) => {
-    const newOverrides = { ...weatherOverrides };
-    if (!cityKey) {
-        delete newOverrides[String(day)];
-    } else {
-        newOverrides[String(day)] = cityKey;
-    }
-    setWeatherOverrides(newOverrides);
-    await saveToDb({ weatherOverrides: newOverrides });
+      const newOverrides = { ...weatherOverrides };
+      if (!cityKey) {
+          delete newOverrides[String(day)];
+      } else {
+          newOverrides[String(day)] = cityKey;
+      }
+      setWeatherOverrides(newOverrides);
+      await saveToDb({ weatherOverrides: newOverrides });
   };
 
   const handleEditFlights = (direction: 'outbound' | 'inbound') => { setEditingFlightDirection(direction); setShowFlightModal(true); };
@@ -508,6 +524,31 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
       const newExpenses = [{ id: generateId(), amount, item, payer, category, date: new Date().toISOString().split('T')[0], createdAt: new Date().toISOString() }, ...expenses];
       setExpenses(newExpenses);
       await saveToDb({ expenses: newExpenses });
+  };
+
+  const handleGenerateTransport = async (startEvent: ItineraryEvent, endEvent: ItineraryEvent) => {
+    if (!startEvent.id || generatingTransportId === startEvent.id) return;
+    setGeneratingTransportId(startEvent.id);
+    const resultText = await generateTransportSuggestion(startEvent.location || startEvent.title, endEvent.location || endEvent.title);
+    const parts = resultText.split('|');
+    if (parts.length >= 2) {
+      const newEvent: ItineraryEvent = {
+        id: generateId(),
+        date: getDateStrFromDay(activeDay, tripSettings.startDate),
+        time: startEvent.time,
+        title: '',
+        location: '',
+        type: 'transport',
+        transportMode: (parts[0].trim().toLowerCase() as any) || 'train',
+        duration: parts[1].trim(),
+        notes: parts[2] || '',
+        createdAt: new Date().toISOString()
+      };
+      const newEvents = [...events, newEvent].sort((a, b) => a.time.localeCompare(b.time));
+      setEvents(newEvents);
+      await saveToDb({ events: newEvents });
+    }
+    setGeneratingTransportId(null);
   };
   
   const handleOpenHotelModal = (hotel?: Hotel) => { setCurrentHotel(hotel || { id: '', name: '', location: '', bookingCode: '', image: '' }); setShowHotelModal(true); };
@@ -584,13 +625,8 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
       await saveToDb({ journalEntries: newEntries });
   };
 
-  const handleUpdateProfile = (u: User) => {
-      onUpdateUser(u);
-      setShowProfileModal(false);
-  };
-
   return (
-    <div className={`min-h-screen ${currentTheme.bgLight} font-['DotGothic16'] text-gray-700 max-w-md mx-auto shadow-2xl relative flex flex-col transition-colors duration-300`}>
+    <div className={`min-h-screen ${currentTheme.bgLight} font-['DotGothic16'] text-gray-700 max-w-md mx-auto shadow-2xl relative overflow-x-hidden transition-colors duration-300`}>
       {loading && (
         <div className="fixed inset-0 z-[200] bg-black/10 flex items-center justify-center backdrop-blur-sm">
           <Loader2 className="animate-spin text-gray-400" size={48} />
@@ -598,6 +634,7 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
       )}
       
       <div className="relative">
+         <button onClick={onBack} className="fixed top-4 left-4 z-50 bg-white/80 p-2 rounded-full border-2 border-black shadow-sm active:scale-90"><ArrowRight className="rotate-180" size={16}/></button>
          <Header 
             tripSettings={tripSettings} 
             currentTheme={currentTheme} 
@@ -605,11 +642,10 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
             currentUser={user}
             onOpenSettings={() => setShowSettingsModal(true)} 
             onOpenProfile={() => setShowProfileModal(true)}
-            onBack={onBack}
          />
       </div>
 
-      <div className={`flex-1 overflow-x-hidden ${currentTheme.bgLight} bg-inherit`}>
+      <main className="mt-4">
         {activeTab === 'itinerary' && (
           <ItineraryView 
              activeDay={activeDay} 
@@ -622,6 +658,8 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
              onOpenWeather={() => setShowWeatherModal(true)} 
              onAddEvent={handleOpenAddEvent} 
              onDeleteEvent={handleDeleteEvent} 
+             onGenerateTransport={handleGenerateTransport} 
+             generatingTransportId={generatingTransportId} 
           />
         )}
         {activeTab === 'booking' && (
@@ -636,7 +674,7 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
         {activeTab === 'members' && (
            <MembersView members={members} onMemberClick={handleOpenMemberModal} />
         )}
-      </div>
+      </main>
 
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} currentTheme={currentTheme} />
 
@@ -656,7 +694,7 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
       {showVoucherModal && currentVoucher && <VoucherModal voucher={currentVoucher} currentTheme={currentTheme} onClose={() => setShowVoucherModal(false)} onSave={handleSaveVoucher} onDelete={handleDeleteVoucher} />}
       {showMemberModal && currentMember && <MemberModal member={currentMember} currentTheme={currentTheme} onClose={() => setShowMemberModal(false)} onSave={handleSaveMember} onDelete={handleDeleteMember} />}
       {showJournalModal && <JournalModal members={members} currentTheme={currentTheme} onClose={() => setShowJournalModal(false)} onSave={handleAddJournalEntry} />}
-      {showProfileModal && <ProfileModal user={user} onClose={() => setShowProfileModal(false)} onSave={handleUpdateProfile} />}
+      {showProfileModal && <ProfileModal user={user} onClose={() => setShowProfileModal(false)} onSave={handleSaveProfile} />}
       {viewingQR && <QRModal image={viewingQR.image} title={viewingQR.title} onClose={() => setViewingQR(null)} />}
     </div>
   );
