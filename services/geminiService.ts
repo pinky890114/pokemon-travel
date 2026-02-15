@@ -1,3 +1,4 @@
+
 import { GoogleGenAI } from "@google/genai";
 
 // @google/genai: Always initialize with process.env.API_KEY as a direct named parameter.
@@ -13,9 +14,16 @@ export const generateTransportSuggestion = async (start: string, end: string): P
     });
     const text = response.text;
     return text || "train|30m|建議搭火車";
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini API Error:", error);
-    return "train|??m|連線失敗(請檢查 API Key)";
+    
+    // Check for API key issues
+    const msg = error.message || "";
+    if (msg.includes("400") || msg.includes("403") || msg.includes("API key not valid")) {
+         return "train|??m|API Key 無效 (請檢查 Vercel 設定)";
+    }
+    
+    return "train|??m|AI 連線失敗";
   }
 };
 
