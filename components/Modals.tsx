@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { X, Sun, Plus, Minus, Trash2, Upload, Ticket, QrCode, Check, Camera, Copy, Key, User as UserIcon, RefreshCw, MapPin, FileText, Image as ImageIcon } from 'lucide-react';
+import { X, Sun, Plus, Minus, Trash2, Upload, Ticket, QrCode, Check, Camera, Copy, Key, User as UserIcon, RefreshCw, MapPin, FileText, Image as ImageIcon, Droplets, Moon } from 'lucide-react';
 import { POKE_CARD_STYLE, POKE_INPUT_STYLE, POKE_BTN_STYLE, DIGITAL_FONT_STYLE, POKEMON_THEMES, CITY_WEATHER_DB } from '../constants';
 import { TripSettings, ItineraryEvent, FlightSegment, Theme, Hotel, Voucher, Member, JournalEntry, WeatherInfo, User } from '../types';
 import { getPokemonSprite, compressImage } from '../utils';
@@ -14,56 +14,109 @@ interface WeatherModalProps {
   onUpdateLocation: (day: number, cityKey: string) => void;
 }
 
-export const WeatherModal: React.FC<WeatherModalProps> = ({ weather, day, currentOverride, onClose, onUpdateLocation }) => (
-  <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-6 backdrop-blur-sm animate-in fade-in">
-    <div className={`${POKE_CARD_STYLE} w-full max-w-sm h-[70vh] flex flex-col overflow-hidden relative`}>
-       <div className="flex justify-between items-center p-4 border-b-[3px] border-black bg-gray-50 font-black">
-         <div>
-            <h3 className="text-xl leading-none">氣候分析</h3>
-            <span className="text-xs text-gray-500 font-bold">DAY {day} - {weather.name}</span>
-         </div>
-         <button onClick={onClose}><X size={18} /></button>
-       </div>
-       
-       <div className="bg-yellow-50 p-2 border-b-2 border-dashed border-gray-300 flex items-center justify-between">
-            <div className="flex items-center text-xs font-bold text-yellow-800">
-                <MapPin size={14} className="mr-1"/>
-                <span>{currentOverride ? "手動定位中" : "自動偵測中"}</span>
-            </div>
-            <select 
-                value={currentOverride || ""}
-                onChange={(e) => onUpdateLocation(day, e.target.value)}
-                className="text-xs font-bold border border-yellow-600 rounded px-2 py-1 bg-white"
-            >
-                <option value="">(Auto Detect)</option>
-                {Object.keys(CITY_WEATHER_DB).map(key => (
-                    <option key={key} value={key}>{CITY_WEATHER_DB[key].name}</option>
-                ))}
-            </select>
-       </div>
+export const WeatherModal: React.FC<WeatherModalProps> = ({ weather, day, currentOverride, onClose, onUpdateLocation }) => {
+  // 根據小時、溫度、以及降雨機率動態決定圖示
+  const getSimulatedIcon = (hour: number, temp: number, rainProb: number) => {
+    const isNight = hour >= 19 || hour <= 6;
+    
+    // 1. 高機率降水判斷
+    if (rainProb > 40) {
+      if (temp <= 2) return "❄️"; // 低溫降水為雪
+      if (rainProb > 70) return "🌧️"; // 強降雨
+      return isNight ? "🌧️" : "🌦️"; // 陣雨
+    }
 
-       <div className="flex-1 overflow-y-auto p-4">
-          <div className="space-y-2">
-             {[...Array(12)].map((_, i) => {
-                const hour = 9 + i;
-                const peakHour = 14;
-                const hourDiff = Math.abs(hour - peakHour);
-                let simTemp = Math.round(weather.maxTemp - (hourDiff * 0.8));
-                simTemp = Math.max(simTemp, weather.minTemp);
+    // 2. 雲量判斷
+    if (weather.condition.toLowerCase().includes('cloudy') || weather.icon === '☁️') {
+      if (rainProb > 20) return "☁️";
+      return isNight ? "☁️" : "🌤️";
+    }
 
-                return (
-                    <div key={i} className="flex items-center justify-between p-2 border-b-2 border-dashed border-gray-200">
-                    <span className="text-sm font-bold text-gray-500 w-12">{hour}:00</span>
-                    <span className="text-xl">{weather.icon}</span>
-                    <span className={`font-black text-gray-800 w-12 text-right ${DIGITAL_FONT_STYLE}`}>{simTemp}°</span>
-                    </div>
-                );
-             })}
+    // 3. 晴朗判斷
+    if (isNight) return "🌙";
+    return "☀️";
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-6 backdrop-blur-sm animate-in fade-in">
+      <div className={`${POKE_CARD_STYLE} w-full max-w-sm h-[75vh] flex flex-col overflow-hidden relative`}>
+        <div className="flex justify-between items-center p-4 border-b-[3px] border-black bg-gray-50 font-black">
+          <div>
+            <h3 className="text-xl leading-none">氣候預報分析</h3>
+            <span className="text-xs text-gray-500 font-bold uppercase tracking-tight">DAY {day} - {weather.name}</span>
           </div>
-       </div>
+          <button onClick={onClose} className="p-1 hover:bg-gray-200 rounded-full transition-colors"><X size={18} /></button>
+        </div>
+        
+        <div className="bg-blue-50 p-2.5 border-b-2 border-dashed border-blue-200 flex items-center justify-between">
+          <div className="flex items-center text-[10px] font-black text-blue-700">
+            <MapPin size={12} className="mr-1"/>
+            <span>{currentOverride ? "手動定位模式" : "自動地區偵測"}</span>
+          </div>
+          <select 
+            value={currentOverride || ""}
+            onChange={(e) => onUpdateLocation(day, e.target.value)}
+            className="text-[10px] font-black border-2 border-black rounded-lg px-2 py-1 bg-white shadow-[1px_1px_0px_#000] outline-none"
+          >
+            <option value="">(自動偵測)</option>
+            {Object.keys(CITY_WEATHER_DB).map(key => (
+              <option key={key} value={key}>{CITY_WEATHER_DB[key].name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 bg-white">
+          <div className="space-y-1">
+            {[...Array(24)].map((_, i) => {
+              const hour = i;
+              const peakHour = 14; 
+              const hourDiff = Math.abs(hour - peakHour);
+              
+              // 模擬溫度曲線
+              let simTemp = Math.round(weather.maxTemp - (hourDiff * ( (weather.maxTemp - weather.minTemp) / 10 )));
+              if (hour < 6 || hour > 20) simTemp -= 1;
+              simTemp = Math.max(simTemp, weather.minTemp);
+
+              // 模擬每小時降雨機率小幅波動
+              const baseRain = weather.rainProb ?? 0;
+              const hourRain = Math.min(100, Math.max(0, baseRain + (Math.sin(hour * 0.5) * 15)));
+
+              const hourIcon = getSimulatedIcon(hour, simTemp, hourRain);
+
+              return (
+                <div key={i} className={`flex items-center justify-between p-3 rounded-xl border-2 transition-colors ${hour === new Date().getHours() ? 'border-blue-400 bg-blue-50/30' : 'border-transparent border-b-gray-100'}`}>
+                  <div className="w-12">
+                    <span className={`text-xs font-black ${hour === new Date().getHours() ? 'text-blue-500' : 'text-gray-400'}`}>
+                      {hour.toString().padStart(2, '0')}:00
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center space-x-4 flex-1 justify-center">
+                    <span className="text-2xl filter drop-shadow-sm w-8 text-center">{hourIcon}</span>
+                    <div className="flex flex-col items-start w-10">
+                      <span className={`font-black text-gray-800 ${DIGITAL_FONT_STYLE}`}>{simTemp}°</span>
+                    </div>
+                  </div>
+
+                  <div className="w-16 flex items-center justify-end text-[10px] font-bold">
+                    <div className={`flex items-center ${hourRain > 40 ? 'text-blue-500' : 'text-gray-300'}`}>
+                      {simTemp <= 2 && hourRain > 40 ? <div className="text-[8px] mr-1">❄️</div> : <Droplets size={10} className="mr-1 opacity-60" />}
+                      <span>{Math.round(hourRain)}%</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        
+        <div className="p-3 border-t-2 border-black bg-gray-50 text-center">
+          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">數據僅供冒險參考 • 祝您旅途愉快</p>
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // --- Profile Modal ---
 interface ProfileModalProps {
@@ -96,7 +149,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSav
 
   return (
     <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
-      <div className={`${POKE_CARD_STYLE} w-full max-w-sm p-6`}>
+      <div className={`${POKE_CARD_STYLE} w-full max-sm p-6`}>
          <div className="flex justify-between items-center mb-6 border-b-2 border-black pb-2">
             <h3 className="font-black text-xl flex items-center"><UserIcon size={20} className="mr-2"/>訓練家卡片</h3>
             <button onClick={onClose}><X size={20}/></button>

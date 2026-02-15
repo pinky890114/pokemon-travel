@@ -126,6 +126,7 @@ export interface WeatherInfo {
   type: string;
   sunrise: string;
   sunset: string;
+  rainProb?: number; // 新增降雨機率
   lat?: number;
   lng?: number;
 }

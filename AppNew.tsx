@@ -1,10 +1,9 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Loader2, Plus, LogOut, Map, ArrowRight, Copy, Check, Users, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Loader2, Plus, LogOut, Map, ArrowRight, Copy, Check, Users, RefreshCw, AlertTriangle, Trash2, Edit2 } from 'lucide-react';
 
-// FIX: Import from utils to avoid file resolution error, same as App.tsx
 import { generateTransportSuggestion } from './utils';
-import { createAdventureInDb, getUserAdventures, joinAdventureInDb, subscribeToAdventure, updateAdventureData } from './services/dbService';
+import { createAdventureInDb, getUserAdventures, joinAdventureInDb, subscribeToAdventure, updateAdventureData, deleteAdventure } from './services/dbService';
 
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
@@ -21,10 +20,8 @@ import {
 import { POKEMON_THEMES, INITIAL_FLIGHT_DATA, INITIAL_HOTELS, INITIAL_VOUCHERS, INITIAL_MEMBERS, POKE_CARD_STYLE, POKE_INPUT_STYLE, POKE_BTN_STYLE, DIGITAL_FONT_STYLE } from './constants';
 import { getDateStrFromDay, calculateLevelFromExp, getCityWeather } from './utils';
 
-// Helper for unique IDs
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
-// --- Login Component ---
 const LoginScreen: React.FC<{ onLogin: (user: User) => void }> = ({ onLogin }) => {
   const [name, setName] = useState('');
 
@@ -34,7 +31,6 @@ const LoginScreen: React.FC<{ onLogin: (user: User) => void }> = ({ onLogin }) =
     
     let userId;
     try {
-        // Use the trimmed name to generate ID, ensuring " Name " and "Name" result in the same account
         userId = btoa(encodeURIComponent(cleanName));
     } catch (e) {
         userId = 'user_' + Date.now();
@@ -82,14 +78,14 @@ const LoginScreen: React.FC<{ onLogin: (user: User) => void }> = ({ onLogin }) =
   );
 };
 
-// --- Lobby Component ---
 interface LobbyScreenProps {
   user: User;
   onSelectAdventure: (id: string) => void;
   onLogout: () => void;
+  onUpdateUser: (u: User) => void;
 }
 
-const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLogout }) => {
+const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLogout, onUpdateUser }) => {
   const [adventures, setAdventures] = useState<AdventureMetadata[]>([]);
   const [newTitle, setNewTitle] = useState('');
   const [joinId, setJoinId] = useState('');
@@ -98,7 +94,6 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
   const [isLoading, setIsLoading] = useState(false);
   const [dbError, setDbError] = useState<string | null>(null);
 
-  // Fetch adventures from Firebase
   const loadAdventures = async () => {
       setIsLoading(true);
       setDbError(null);
@@ -134,7 +129,6 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
       createdAt: new Date().toISOString()
     };
 
-    // Initialize default data
     const initialData = {
       tripSettings: { title: newTitle, subtitle: 'New Adventure', startDate: newAdv.startDate },
       totalDays: 5,
@@ -158,7 +152,7 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
     try {
         const success = await createAdventureInDb(newAdv, initialData);
         if (success) {
-            await loadAdventures(); // Refresh list
+            await loadAdventures(); 
             setMode('view');
             setNewTitle('');
             onSelectAdventure(newAdv.id);
@@ -188,6 +182,22 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
       setIsLoading(false);
   };
 
+  const handleDelete = async (id: string, title: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!window.confirm(`確定要刪除旅程「${title}」嗎？\n刪除後所有成員將無法存取此旅程。`)) {
+          return;
+      }
+      setIsLoading(true);
+      try {
+          await deleteAdventure(id);
+          await loadAdventures();
+      } catch (e) {
+          setDbError("刪除失敗，請稍後再試。");
+      } finally {
+          setIsLoading(false);
+      }
+  };
+
   const copyToClipboard = (text: string, e: React.MouseEvent) => {
       e.stopPropagation();
       navigator.clipboard.writeText(text);
@@ -197,28 +207,26 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
 
   return (
     <div className="min-h-screen bg-[#f3f4f6] font-['DotGothic16'] pb-20">
-      <div className="p-6 pt-12">
-         <div className="flex justify-between items-center mb-8">
+      <div className="p-4 pt-10">
+         <div className="flex justify-between items-center mb-6">
             <div className="flex items-center space-x-3">
-               <img src={user.avatar} className="w-12 h-12 rounded-full border-2 border-black bg-white" alt="avatar" />
+               <img src={user.avatar} className="w-10 h-10 rounded-full border-2 border-black bg-white object-cover" alt="avatar" />
                <div>
-                  <div className="text-[10px] font-bold text-gray-500 uppercase">Welcome back</div>
-                  <h2 className="text-xl font-black leading-none">{user.name}</h2>
-                  <div className="text-[9px] text-gray-400 font-mono mt-1 select-all" title="Your User ID">#{user.id.substring(0, 8)}...</div>
+                  <div className="text-[9px] font-bold text-gray-400 uppercase leading-none">Trainer</div>
+                  <h2 className="text-lg font-black leading-tight text-black">{user.name}</h2>
                </div>
             </div>
-            <button onClick={onLogout} className="bg-red-100 text-red-600 p-2 rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] active:translate-y-[1px] active:shadow-none">
-               <LogOut size={16} />
+            <button onClick={onLogout} className="bg-red-100 text-red-600 p-2 rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] active:translate-y-[1px] active:shadow-none transition-all">
+               <LogOut size={14} />
             </button>
          </div>
 
          <div className="mb-6">
-            <h3 className="text-lg font-black mb-4 flex items-center justify-between">
-                <div className="flex items-center"><Map size={20} className="mr-2"/>我的冒險</div>
-                <button onClick={loadAdventures} disabled={isLoading} className="text-gray-400 hover:text-black active:rotate-180 transition-all"><RefreshCw size={16}/></button>
+            <h3 className="text-sm font-black mb-3 flex items-center justify-between text-black uppercase tracking-widest">
+                <div className="flex items-center"><Map size={16} className="mr-2"/>Adventuring</div>
+                <button onClick={loadAdventures} disabled={isLoading} className="text-gray-400 hover:text-black active:rotate-180 transition-all"><RefreshCw size={14}/></button>
             </h3>
             
-            {/* Error Banner */}
             {dbError && (
                 <div className="mb-4 bg-red-50 border-2 border-red-500 rounded-xl p-3 flex items-start text-red-700 animate-in slide-in-from-top-2">
                     <AlertTriangle size={20} className="mr-2 flex-shrink-0 mt-0.5" />
@@ -227,105 +235,124 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
             )}
 
             {mode === 'create' ? (
-               <div className={`${POKE_CARD_STYLE} p-4 animate-in fade-in`}>
-                  <h4 className="font-bold text-sm mb-2">新的旅程名稱</h4>
+               <div className={`${POKE_CARD_STYLE} p-3 animate-in fade-in`}>
+                  <h4 className="font-bold text-xs mb-2 text-black">冒險標題</h4>
                   <input 
                     autoFocus
                     value={newTitle}
                     onChange={e => setNewTitle(e.target.value)}
-                    className={`w-full p-2 mb-3 ${POKE_INPUT_STYLE}`}
-                    placeholder="例如: 東京五日遊"
+                    className={`w-full p-2 mb-3 text-sm ${POKE_INPUT_STYLE}`}
+                    placeholder="例如: 關都地區大冒險"
                   />
                   <div className="flex space-x-2">
                      <button onClick={() => setMode('view')} className="flex-1 py-2 text-xs font-bold text-gray-500">取消</button>
                      <button onClick={handleCreate} disabled={isLoading} className={`flex-1 py-2 text-xs font-bold bg-[#3B4CCA] text-white rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] flex justify-center items-center`}>
-                        {isLoading ? <Loader2 className="animate-spin" size={14}/> : '建立'}
+                        {isLoading ? <Loader2 className="animate-spin" size={12}/> : '建立'}
                      </button>
                   </div>
                </div>
             ) : mode === 'join' ? (
-               <div className={`${POKE_CARD_STYLE} p-4 animate-in fade-in`}>
-                  <h4 className="font-bold text-sm mb-2">輸入冒險 ID</h4>
+               <div className={`${POKE_CARD_STYLE} p-3 animate-in fade-in`}>
+                  <h4 className="font-bold text-xs mb-2 text-black">貼上冒險 ID</h4>
                   <input 
                     autoFocus
                     value={joinId}
                     onChange={e => setJoinId(e.target.value)}
-                    className={`w-full p-2 mb-3 ${POKE_INPUT_STYLE}`}
-                    placeholder="Paste ID here..."
+                    className={`w-full p-2 mb-3 text-sm ${POKE_INPUT_STYLE}`}
+                    placeholder="Adventure ID..."
                   />
                   <div className="flex space-x-2">
                      <button onClick={() => setMode('view')} className="flex-1 py-2 text-xs font-bold text-gray-500">取消</button>
                      <button onClick={handleJoin} disabled={isLoading} className={`flex-1 py-2 text-xs font-bold bg-green-600 text-white rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] flex justify-center items-center`}>
-                        {isLoading ? <Loader2 className="animate-spin" size={14}/> : '加入'}
+                        {isLoading ? <Loader2 className="animate-spin" size={12}/> : '加入'}
                      </button>
                   </div>
                </div>
             ) : (
-               <div className="grid grid-cols-2 gap-3">
-                    <button onClick={() => setMode('create')} className="py-4 border-2 border-dashed border-gray-400 rounded-xl text-gray-400 font-bold flex flex-col items-center justify-center hover:bg-white hover:border-black hover:text-black transition-colors">
-                        <Plus size={24} className="mb-1"/>
-                        <span>展開新冒險</span>
+               <div className="grid grid-cols-2 gap-2">
+                    <button onClick={() => setMode('create')} className="py-3 border-2 border-dashed border-gray-400 rounded-xl text-gray-400 font-bold flex flex-col items-center justify-center hover:bg-white hover:border-black hover:text-black transition-colors">
+                        <Plus size={20} className="mb-1"/>
+                        <span className="text-[10px]">新冒險</span>
                     </button>
-                    <button onClick={() => setMode('join')} className="py-4 border-2 border-dashed border-gray-400 rounded-xl text-gray-400 font-bold flex flex-col items-center justify-center hover:bg-white hover:border-black hover:text-black transition-colors">
-                        <Users size={24} className="mb-1"/>
-                        <span>加入冒險</span>
+                    <button onClick={() => setMode('join')} className="py-3 border-2 border-dashed border-gray-400 rounded-xl text-gray-400 font-bold flex flex-col items-center justify-center hover:bg-white hover:border-black hover:text-black transition-colors">
+                        <Users size={20} className="mb-1"/>
+                        <span className="text-[10px]">加入冒險</span>
                     </button>
                </div>
             )}
          </div>
 
-         <div className="space-y-4">
-            {isLoading && !dbError && adventures.length === 0 && <div className="text-center p-4"><Loader2 className="animate-spin mx-auto text-gray-400"/></div>}
+         <div className="grid grid-cols-2 gap-3">
+            {isLoading && !dbError && adventures.length === 0 && <div className="col-span-2 text-center p-4"><Loader2 className="animate-spin mx-auto text-gray-400"/></div>}
             {!isLoading && !dbError && adventures.length === 0 && mode === 'view' && (
-               <div className="text-center text-gray-400 text-sm mt-10">
-                  還沒有任何冒險記錄...
+               <div className="col-span-2 text-center text-gray-400 text-sm mt-10">
+                  尚未展開冒險...
                </div>
             )}
-            {adventures.map(adv => (
-               <div 
-                 key={adv.id} 
-                 className={`${POKE_CARD_STYLE} w-full p-0 overflow-hidden text-left group transition-transform relative`}
-               >
-                  <button onClick={() => onSelectAdventure(adv.id)} className="w-full text-left active:scale-[0.98] transition-transform">
-                    <div className="h-20 bg-gray-100 relative overflow-hidden border-b-2 border-black">
-                        <img src={adv.coverImage} className="w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-500" alt="cover"/>
-                        <div className="absolute bottom-2 left-4 bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded border border-black text-[10px] font-bold">
-                            {adv.startDate}
-                        </div>
-                    </div>
-                    <div className="p-4 flex justify-between items-center">
-                        <div>
-                            <h4 className="text-lg font-black leading-tight">{adv.title}</h4>
-                            <div className="text-xs text-gray-500 font-bold mt-1">{adv.memberIds.length} 位訓練家</div>
-                        </div>
-                        <ArrowRight size={20} className="text-gray-300 group-hover:text-black transition-colors" />
-                    </div>
-                  </button>
+            {adventures.map(adv => {
+               const endDate = getDateStrFromDay(adv.totalDays || 5, adv.startDate);
+               const dateRange = `${adv.startDate.split('-').slice(1).join('/')} - ${endDate.split('-').slice(1).join('/')}`;
 
-                  {/* ID Copy Button */}
-                  <div className="absolute top-2 right-2">
-                      <button 
-                        onClick={(e) => copyToClipboard(adv.id, e)}
-                        className="bg-white/90 backdrop-blur border border-black rounded px-2 py-1 text-[10px] font-bold flex items-center hover:bg-gray-100 active:scale-95"
-                      >
-                         {copiedId === adv.id ? <Check size={10} className="mr-1 text-green-600"/> : <Copy size={10} className="mr-1"/>}
-                         ID: {adv.id}
-                      </button>
-                  </div>
-               </div>
-            ))}
+               return (
+                 <div 
+                   key={adv.id} 
+                   className={`${POKE_CARD_STYLE} overflow-hidden group transition-all relative flex flex-col border-b-[3px] hover:-translate-y-0.5 active:scale-[0.98] cursor-pointer`}
+                 >
+                    <div onClick={() => onSelectAdventure(adv.id)} className="flex-1 flex flex-col text-left">
+                      <div className="aspect-square bg-white relative overflow-hidden border-b border-black flex items-center justify-center p-1.5">
+                          <img 
+                            src={adv.coverImage} 
+                            className="w-full h-full object-contain pixelated group-hover:animate-bounce-short" 
+                            style={{ animationIterationCount: 'infinite', animationDuration: '2s' }}
+                            alt="cover"
+                          />
+                          <div className="absolute top-1 left-1 bg-black text-white px-1.5 py-0.5 rounded border border-white text-[7px] font-black shadow-sm uppercase">
+                             Day {adv.totalDays || 5}
+                          </div>
+                      </div>
+                      <div className="p-2 bg-gray-50 flex-1 flex flex-col justify-between">
+                          <div className="min-w-0">
+                              <h4 className="text-sm font-black leading-tight text-black line-clamp-1 mb-0.5">{adv.title}</h4>
+                              <div className="text-[9px] text-gray-400 font-bold leading-none mb-2 truncate">{dateRange}</div>
+                          </div>
+                          
+                          <div className="flex items-center justify-between mt-0.5 pt-1.5 border-t border-dashed border-gray-200">
+                              <div className="flex items-center text-[9px] text-gray-400 font-bold">
+                                  <Users size={8} className="mr-1 opacity-50"/> {adv.memberIds.length}
+                              </div>
+                              <div className="flex space-x-1">
+                                  <button 
+                                    onClick={(e) => copyToClipboard(adv.id, e)}
+                                    className={`bg-yellow-400 text-black border border-black rounded p-1 shadow-[1px_1px_0px_#000] active:translate-y-[0.5px] active:shadow-none hover:bg-yellow-300 transition-colors`}
+                                    title="Copy Invite ID"
+                                  >
+                                     {copiedId === adv.id ? <Check size={8} className="text-green-700 font-bold"/> : <Copy size={8}/>}
+                                  </button>
+                                  <button 
+                                    onClick={(e) => handleDelete(adv.id, adv.title, e)}
+                                    className="bg-white border border-black rounded p-1 text-red-500 shadow-[1px_1px_0px_#000] active:translate-y-[0.5px] active:shadow-none hover:bg-red-50 transition-colors"
+                                    title="Delete Adventure"
+                                  >
+                                     <Trash2 size={8} />
+                                  </button>
+                              </div>
+                          </div>
+                      </div>
+                    </div>
+                 </div>
+               );
+            })}
          </div>
       </div>
     </div>
   );
 };
 
-// --- Adventure Board ---
 interface AdventureBoardProps {
   user: User;
   adventureId: string;
   onBack: () => void;
-  onUpdateUser: (u: User) => void; // Add this prop
+  onUpdateUser: (u: User) => void;
 }
 
 const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBack, onUpdateUser }) => {
@@ -334,7 +361,6 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
   const [totalDays, setTotalDays] = useState(5);
   const [loading, setLoading] = useState(true);
 
-  // Data State
   const [tripSettings, setTripSettings] = useState<TripSettings>({ title: '', subtitle: '', startDate: '' });
   const [flightData, setFlightData] = useState<FlightData>(INITIAL_FLIGHT_DATA);
   const [events, setEvents] = useState<ItineraryEvent[]>([]);
@@ -346,7 +372,6 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
   const [weatherOverrides, setWeatherOverrides] = useState<Record<string, string>>({});
   const [currentCoverImage, setCurrentCoverImage] = useState('');
 
-  // Modals
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showWeatherModal, setShowWeatherModal] = useState(false);
   const [showEventModal, setShowEventModal] = useState(false);
@@ -359,7 +384,6 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
   
   const [viewingQR, setViewingQR] = useState<{image: string, title: string} | null>(null);
 
-  // Editing State
   const [currentEvent, setCurrentEvent] = useState<ItineraryEvent | null>(null);
   const [isEditingEvent, setIsEditingEvent] = useState(false);
   const [editingFlightDirection, setEditingFlightDirection] = useState<'outbound' | 'inbound'>('outbound');
@@ -372,7 +396,6 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
   const currentDayEvents = events.filter(e => e.date === getDateStrFromDay(activeDay, tripSettings.startDate));
   const currentWeather = getCityWeather(activeDay, currentDayEvents, weatherOverrides);
 
-  // Real-time Subscription to Firebase
   useEffect(() => {
       setLoading(true);
       const unsubscribe = subscribeToAdventure(adventureId, (data) => {
@@ -387,13 +410,12 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
           if (data.members) setMembers(data.members);
           if (data.journalEntries) setJournalEntries(data.journalEntries);
           if (data.weatherOverrides) setWeatherOverrides(data.weatherOverrides);
-          if (data.coverImage) setCurrentCoverImage(data.coverImage); // Load cover image from stream
+          if (data.coverImage) setCurrentCoverImage(data.coverImage); 
           setLoading(false);
       });
       return () => unsubscribe();
   }, [adventureId]);
 
-  // Helper to save current state to DB
   const saveToDb = async (overrides: Partial<any> = {}, coverImageOverride?: string) => {
       const dataToSave = {
           tripSettings,
@@ -406,7 +428,7 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
           members,
           journalEntries,
           weatherOverrides,
-          ...overrides // Allow overriding state that hasn't updated yet in the closure
+          ...overrides 
       };
       await updateAdventureData(adventureId, dataToSave, coverImageOverride);
   };
@@ -420,9 +442,8 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
   };
 
   const handleSaveProfile = async (updatedUser: User) => {
-    onUpdateUser(updatedUser); // Update global user state and localStorage
+    onUpdateUser(updatedUser); 
     
-    // Update the member record in the current adventure
     const newMembers = members.map(m => 
         m.id === updatedUser.id 
         ? { ...m, name: updatedUser.name, img: updatedUser.avatar }
@@ -560,7 +581,6 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
     const newEntries = [{ ...entry, id: generateId() }, ...journalEntries];
     setJournalEntries(newEntries);
     
-    // XP Logic
     let newMembers = members;
     if (entry.authorId) { 
         newMembers = members.map(m => { 
@@ -635,7 +655,6 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
 
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} currentTheme={currentTheme} />
 
-      {/* Modals Injection */}
       {showWeatherModal && (
         <WeatherModal 
             weather={currentWeather} 
@@ -658,7 +677,6 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
   );
 };
 
-// --- App Root ---
 const AppNew: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [currentAdventureId, setCurrentAdventureId] = useState<string | null>(null);
@@ -696,6 +714,7 @@ const AppNew: React.FC = () => {
             user={user} 
             onSelectAdventure={setCurrentAdventureId} 
             onLogout={handleLogout} 
+            onUpdateUser={handleUpdateUser}
         />
     );
   }

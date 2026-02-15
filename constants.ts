@@ -1,9 +1,10 @@
 
 import { FlightData, Hotel, Member, Theme, WeatherInfo, Voucher } from './types';
 
-export const POKE_CARD_STYLE = "bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-xl";
-export const POKE_BTN_STYLE = "border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all rounded-xl";
-export const POKE_INPUT_STYLE = "font-['DotGothic16'] border-2 border-black shadow-[2px_2px_0px_0px_#ccc] focus:shadow-[2px_2px_0px_0px_#000] rounded-lg outline-none transition-all placeholder:text-gray-400";
+export const POKE_CARD_STYLE = "bg-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,0.1)] rounded-xl";
+export const POKE_BTN_STYLE = "border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-[1px] active:shadow-none transition-all rounded-xl";
+// 修改 POKE_INPUT_STYLE: 使用淺灰色邊框，聚焦時變黑，並強制背景白、文字黑
+export const POKE_INPUT_STYLE = "font-['DotGothic16'] border-2 border-gray-300 focus:border-black bg-white text-black shadow-none rounded-lg outline-none transition-all placeholder:text-gray-400";
 export const DIGITAL_FONT_STYLE = "font-['VT323'] text-lg tracking-wider";
 
 export const CITY_WEATHER_DB: Record<string, WeatherInfo> = {

@@ -1,42 +1,12 @@
-
 import { GoogleGenAI } from "@google/genai";
 
-declare var process: {
-  env: {
-    API_KEY: string;
-    [key: string]: string | undefined;
-  };
-};
-
-const DEFAULT_KEY = "AIzaSyDvewEpnydylKdanAlP3QX81VP79hc1FIcFix";
-
-const getApiKey = () => {
-    if (typeof process !== 'undefined' && process.env && process.env.API_KEY && process.env.API_KEY !== "undefined") {
-        return process.env.API_KEY;
-    }
-    // @ts-ignore
-    if (import.meta.env?.VITE_API_KEY) {
-        // @ts-ignore
-        return import.meta.env.VITE_API_KEY;
-    }
-    if (typeof process !== 'undefined' && process.env && process.env.VITE_API_KEY) {
-        return process.env.VITE_API_KEY;
-    }
-    return DEFAULT_KEY;
-}
-
-const apiKey = getApiKey();
-
-const ai = new GoogleGenAI({ apiKey });
+// @google/genai: Always initialize with process.env.API_KEY as a direct named parameter.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const generateTransportSuggestion = async (start: string, end: string): Promise<string> => {
-  if (!apiKey || apiKey === DEFAULT_KEY) {
-    // 雖然有 Default Key，但建議還是提示用戶設定
-    console.warn("Using Default API Key or Key not found");
-  }
-
   const prompt = `從「${start}」到「${end}」的最佳交通？格式: MODE|DURATION|NOTES`;
   try {
+    // @google/genai: Using gemini-3-flash-preview for basic text tasks.
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt
@@ -60,6 +30,7 @@ export const translateText = async (text: string, mode: 'to_zh' | 'to_de' | 'to_
   }
 
   try {
+     // @google/genai: Using gemini-3-flash-preview for translation (basic text task).
      const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt

@@ -3,7 +3,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Plane, Home, QrCode, Edit3, ArrowDownCircle, Clock, Luggage, MapPin, Plus, StickyNote, Calendar, Ticket, Languages, Sparkles, Loader2, Copy, FileText, Image as ImageIcon } from 'lucide-react';
 import { FlightData, Hotel, Theme, Voucher } from '../types';
 import { POKE_CARD_STYLE, DIGITAL_FONT_STYLE, POKE_INPUT_STYLE, POKE_BTN_STYLE } from '../constants';
-// FIX: Import from utils to avoid file resolution error
 import { translateText } from '../utils';
 
 interface BookingViewProps {
@@ -55,7 +54,7 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
   }, [translationResult]);
 
   return (
-    <div className="px-6 space-y-6 pb-40 animate-in fade-in">
+    <div className="px-6 space-y-6 pb-40 pt-4 animate-in fade-in">
       <div className="flex bg-white/50 p-2 rounded-xl border-2 border-black/10 overflow-x-auto no-scrollbar">
         {[
           { id: 'flight', label: '機票', icon: Plane }, 
@@ -179,7 +178,7 @@ export const BookingView: React.FC<BookingViewProps> = ({ currentTheme, flightDa
                            <span className="text-[8px] font-bold text-gray-400 leading-none mb-0.5">IN</span>
                            <span className={`text-xs font-black text-gray-700 ${DIGITAL_FONT_STYLE} leading-none`}>{h.checkIn?.slice(5).replace('-', '/') || '--/--'}</span>
                        </div>
-                       <div className="text-gray-300 font-black text-[10px]">&gt;</div>
+                       <div className="text-gray-300 font-black text-[10px]">{" > "}</div>
                        <div className="flex-1 bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5 flex flex-col items-center">
                            <span className="text-[8px] font-bold text-gray-400 leading-none mb-0.5">OUT</span>
                            <span className={`text-xs font-black text-gray-700 ${DIGITAL_FONT_STYLE} leading-none`}>{h.checkOut?.slice(5).replace('-', '/') || '--/--'}</span>

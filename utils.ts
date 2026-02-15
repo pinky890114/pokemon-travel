@@ -1,34 +1,9 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { CITY_KEYWORDS, CITY_WEATHER_DB } from "./constants";
 import { ItineraryEvent, WeatherInfo } from "./types";
 
-// --- AI Service Logic Moved Here ---
-declare var process: {
-  env: {
-    API_KEY: string;
-    [key: string]: string | undefined;
-  };
-};
-
-const DEFAULT_KEY = "AIzaSyDvewEpnydylKdanAlP3QX81VP79hc1FIcFix";
-
-const getApiKey = () => {
-    if (typeof process !== 'undefined' && process.env && process.env.API_KEY && process.env.API_KEY !== "undefined") {
-        return process.env.API_KEY;
-    }
-    // @ts-ignore
-    if (import.meta.env?.VITE_API_KEY) {
-        // @ts-ignore
-        return import.meta.env.VITE_API_KEY;
-    }
-    if (typeof process !== 'undefined' && process.env && process.env.VITE_API_KEY) {
-        return process.env.VITE_API_KEY;
-    }
-    return DEFAULT_KEY;
-}
-
-const ai = new GoogleGenAI({ apiKey: getApiKey() });
+// --- AI Service Logic ---
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const generateTransportSuggestion = async (start: string, end: string): Promise<string> => {
   const prompt = `從「${start}」到「${end}」的最佳交通？格式: MODE|DURATION|NOTES`;
@@ -82,6 +57,7 @@ export const getExpForNextLevel = (currentLevel: number) => {
 };
 
 export const getDateStrFromDay = (dayIndex: number, startDateStr: string) => {
+  if (!startDateStr) return new Date().toISOString().split('T')[0];
   const startDate = new Date(startDateStr + 'T00:00:00'); 
   const targetDate = new Date(startDate);
   targetDate.setDate(startDate.getDate() + (dayIndex - 1));
@@ -100,13 +76,11 @@ export const getDayInfo = (dayIndex: number, startDateStr: string) => {
 };
 
 export const identifyCityKey = (day: number, dayEvents: ItineraryEvent[] = [], overrides: Record<string, string> = {}): string => {
-  // Priority 0: Check manual overrides
   const dayKey = String(day);
   if (overrides && overrides[dayKey]) {
       return overrides[dayKey];
   }
 
-  // Priority 1: Check events for keywords
   for (const event of dayEvents) {
     const textToCheck = (event.title + " " + (event.location || "")).toLowerCase();
     for (const cityGroup of CITY_KEYWORDS) {
@@ -118,8 +92,7 @@ export const identifyCityKey = (day: number, dayEvents: ItineraryEvent[] = [], o
     }
   }
   
-  // Priority 2: Fallback logic based on day number
-  if (day === 1) return "TAOYUAN"; // Default start location
+  if (day === 1) return "TAOYUAN";
   if (day <= 3) return "ZURICH";
   if (day <= 6) return "INTERLAKEN";
   if (day <= 9) return "ZERMATT";
@@ -145,25 +118,42 @@ const getWeatherIcon = (code: number): { icon: string; condition: string } => {
   return { icon: "🌤️", condition: "clear" };
 };
 
-export const fetchRealtimeWeather = async (lat: number, lng: number): Promise<Partial<WeatherInfo> | null> => {
+export const fetchRealtimeWeather = async (lat: number, lng: number, targetDate: string): Promise<Partial<WeatherInfo> | null> => {
   try {
-    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto`);
+    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max&timezone=auto`);
     const data = await res.json();
     
-    if (!data.current_weather) return null;
+    if (!data.daily) return null;
 
-    const { temperature, weathercode } = data.current_weather;
-    const { temperature_2m_max, temperature_2m_min, sunrise, sunset } = data.daily;
-    const { icon, condition } = getWeatherIcon(weathercode);
+    // 尋找目標日期在預報陣列中的索引
+    let dateIndex = data.daily.time.indexOf(targetDate);
+    
+    // 如果找不到索引（日期太遠或已過去），則返回空以顯示預設資料
+    if (dateIndex === -1) {
+       return null;
+    }
+
+    const { temperature_2m_max, temperature_2m_min, sunrise, sunset, precipitation_probability_max } = data.daily;
+    
+    // 如果是「今天」，我們可以使用 current_weather 的即時氣溫
+    const todayStr = new Date().toISOString().split('T')[0];
+    let displayTemp = Math.round((temperature_2m_max[dateIndex] + temperature_2m_min[dateIndex]) / 2);
+    
+    if (targetDate === todayStr && data.current_weather) {
+        displayTemp = Math.round(data.current_weather.temperature);
+    }
+
+    const { icon, condition } = getWeatherIcon(data.daily.weather_code?.[dateIndex] || data.current_weather?.weathercode || 0);
 
     return {
-      temp: Math.round(temperature),
-      minTemp: Math.round(temperature_2m_min[0]),
-      maxTemp: Math.round(temperature_2m_max[0]),
+      temp: displayTemp,
+      minTemp: Math.round(temperature_2m_min[dateIndex]),
+      maxTemp: Math.round(temperature_2m_max[dateIndex]),
       condition,
       icon,
-      sunrise: sunrise[0].split('T')[1].slice(0, 5),
-      sunset: sunset[0].split('T')[1].slice(0, 5),
+      sunrise: sunrise[dateIndex].split('T')[1].slice(0, 5),
+      sunset: sunset[dateIndex].split('T')[1].slice(0, 5),
+      rainProb: Math.round(precipitation_probability_max[dateIndex])
     };
   } catch (e) {
     console.error("Failed to fetch weather", e);

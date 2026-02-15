@@ -1,9 +1,6 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Loader2, Plus, LogOut, Map, ArrowRight, Copy, Check, Users, RefreshCw, AlertTriangle, Trash2, Edit2 } from 'lucide-react';
 
-// FIX: Import from utils to avoid file resolution error, same as App.tsx
-import { generateTransportSuggestion } from './utils';
 import { createAdventureInDb, getUserAdventures, joinAdventureInDb, subscribeToAdventure, updateAdventureData, deleteAdventure } from './services/dbService';
 
 import { Header } from './components/Header';
@@ -125,7 +122,7 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
     const newAdv: AdventureMetadata = {
       id: generateId(),
       title: newTitle,
-      coverImage: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${Math.floor(Math.random() * 151) + 1}.png`,
+      coverImage: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${Math.floor(Math.random() * 1025) + 1}.png`,
       startDate: new Date().toISOString().split('T')[0],
       memberIds: [user.id],
       createdAt: new Date().toISOString(),
@@ -215,30 +212,29 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
 
   return (
     <div className="min-h-screen bg-[#f3f4f6] font-['DotGothic16'] pb-20">
-      <div className="p-6 pt-12">
-         <div className="flex justify-between items-center mb-8">
+      <div className="p-4 pt-10">
+         <div className="flex justify-between items-center mb-6">
             <div className="flex items-center space-x-3">
                <button onClick={() => setShowProfileModal(true)} className="relative group flex-shrink-0">
-                   <img src={user.avatar} className="w-12 h-12 rounded-full border-2 border-black bg-white object-cover" alt="avatar" />
-                   <div className="absolute -bottom-1 -right-1 bg-blue-500 text-white border border-black rounded-full p-1 shadow-sm group-hover:scale-110 transition-transform">
+                   <img src={user.avatar} className="w-10 h-10 rounded-full border-2 border-black bg-white object-cover" alt="avatar" />
+                   <div className="absolute -bottom-1 -right-1 bg-blue-500 text-white border border-black rounded-full p-0.5 shadow-sm group-hover:scale-110 transition-transform">
                        <Edit2 size={8} />
                    </div>
                </button>
                <div>
-                  <div className="text-[10px] font-bold text-gray-500 uppercase">Welcome back</div>
-                  <h2 className="text-xl font-black leading-none">{user.name}</h2>
-                  <div className="text-[9px] text-gray-400 font-mono mt-1 select-all" title="Your User ID">#{user.id.substring(0, 8)}...</div>
+                  <div className="text-[9px] font-bold text-gray-400 uppercase leading-none">Trainer</div>
+                  <h2 className="text-lg font-black leading-tight text-black">{user.name}</h2>
                </div>
             </div>
-            <button onClick={onLogout} className="bg-red-100 text-red-600 p-2 rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] active:translate-y-[1px] active:shadow-none">
-               <LogOut size={16} />
+            <button onClick={onLogout} className="bg-red-100 text-red-600 p-2 rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] active:translate-y-[1px] active:shadow-none transition-all">
+               <LogOut size={14} />
             </button>
          </div>
 
          <div className="mb-6">
-            <h3 className="text-lg font-black mb-4 flex items-center justify-between">
-                <div className="flex items-center"><Map size={20} className="mr-2"/>我的冒險</div>
-                <button onClick={loadAdventures} disabled={isLoading} className="text-gray-400 hover:text-black active:rotate-180 transition-all"><RefreshCw size={16}/></button>
+            <h3 className="text-sm font-black mb-3 flex items-center justify-between text-black uppercase tracking-widest">
+                <div className="flex items-center"><Map size={14} className="mr-1.5"/>Adventuring</div>
+                <button onClick={loadAdventures} disabled={isLoading} className="text-gray-400 hover:text-black active:rotate-180 transition-all"><RefreshCw size={12}/></button>
             </h3>
             
             {dbError && (
@@ -249,103 +245,126 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ user, onSelectAdventure, onLo
             )}
 
             {mode === 'create' ? (
-               <div className={`${POKE_CARD_STYLE} p-4 animate-in fade-in`}>
-                  <h4 className="font-bold text-sm mb-2">新的旅程名稱</h4>
+               <div className={`${POKE_CARD_STYLE} p-3 animate-in fade-in`}>
+                  <h4 className="font-bold text-[10px] mb-1.5 text-black uppercase tracking-tighter">New Adventure Title</h4>
                   <input 
                     autoFocus
                     value={newTitle}
                     onChange={e => setNewTitle(e.target.value)}
-                    className={`w-full p-2 mb-3 ${POKE_INPUT_STYLE}`}
-                    placeholder="例如: 東京五日遊"
+                    className={`w-full p-2 mb-3 text-xs ${POKE_INPUT_STYLE}`}
+                    placeholder="例如: 關都地區大冒險"
                   />
                   <div className="flex space-x-2">
-                     <button onClick={() => setMode('view')} className="flex-1 py-2 text-xs font-bold text-gray-500">取消</button>
-                     <button onClick={handleCreate} disabled={isLoading} className={`flex-1 py-2 text-xs font-bold bg-[#3B4CCA] text-white rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] flex justify-center items-center`}>
-                        {isLoading ? <Loader2 className="animate-spin" size={14}/> : '建立'}
+                     <button onClick={() => setMode('view')} className="flex-1 py-2 text-[10px] font-bold text-gray-500">取消</button>
+                     <button onClick={handleCreate} disabled={isLoading} className={`flex-1 py-2 text-[10px] font-bold bg-[#3B4CCA] text-white rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] flex justify-center items-center`}>
+                        {isLoading ? <Loader2 className="animate-spin" size={10}/> : '建立冒險'}
                      </button>
                   </div>
                </div>
             ) : mode === 'join' ? (
-               <div className={`${POKE_CARD_STYLE} p-4 animate-in fade-in`}>
-                  <h4 className="font-bold text-sm mb-2">輸入冒險 ID</h4>
+               <div className={`${POKE_CARD_STYLE} p-3 animate-in fade-in`}>
+                  <h4 className="font-bold text-[10px] mb-1.5 text-black uppercase tracking-tighter">Paste Adventure ID</h4>
                   <input 
                     autoFocus
                     value={joinId}
                     onChange={e => setJoinId(e.target.value)}
-                    className={`w-full p-2 mb-3 ${POKE_INPUT_STYLE}`}
-                    placeholder="Paste ID here..."
+                    className={`w-full p-2 mb-3 text-xs ${POKE_INPUT_STYLE}`}
+                    placeholder="Adventure ID..."
                   />
                   <div className="flex space-x-2">
-                     <button onClick={() => setMode('view')} className="flex-1 py-2 text-xs font-bold text-gray-500">取消</button>
-                     <button onClick={handleJoin} disabled={isLoading} className={`flex-1 py-2 text-xs font-bold bg-green-600 text-white rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] flex justify-center items-center`}>
-                        {isLoading ? <Loader2 className="animate-spin" size={14}/> : '加入'}
+                     <button onClick={() => setMode('view')} className="flex-1 py-2 text-[10px] font-bold text-gray-500">取消</button>
+                     <button onClick={handleJoin} disabled={isLoading} className={`flex-1 py-2 text-[10px] font-bold bg-green-600 text-white rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] flex justify-center items-center`}>
+                        {isLoading ? <Loader2 className="animate-spin" size={10}/> : '加入'}
                      </button>
                   </div>
                </div>
             ) : (
-               <div className="grid grid-cols-2 gap-3">
-                    <button onClick={() => setMode('create')} className="py-4 border-2 border-dashed border-gray-400 rounded-xl text-gray-400 font-bold flex flex-col items-center justify-center hover:bg-white hover:border-black hover:text-black transition-colors">
-                        <Plus size={24} className="mb-1"/>
-                        <span>展開新冒險</span>
+               <div className="space-y-2">
+                    <button onClick={() => setMode('create')} className="w-full py-4 border-2 border-dashed border-gray-400 rounded-xl text-gray-400 font-bold flex items-center justify-center hover:bg-white hover:border-black hover:text-black transition-all active:scale-[0.99]">
+                        <Plus size={18} className="mr-2"/>
+                        <span className="text-xs uppercase tracking-tight">展開新冒險</span>
                     </button>
-                    <button onClick={() => setMode('join')} className="py-4 border-2 border-dashed border-gray-400 rounded-xl text-gray-400 font-bold flex flex-col items-center justify-center hover:bg-white hover:border-black hover:text-black transition-colors">
-                        <Users size={24} className="mb-1"/>
-                        <span>加入冒險</span>
+                    <button onClick={() => setMode('join')} className="w-full py-4 border-2 border-dashed border-gray-400 rounded-xl text-gray-400 font-bold flex items-center justify-center hover:bg-white hover:border-black hover:text-black transition-all active:scale-[0.99]">
+                        <Users size={18} className="mr-2"/>
+                        <span className="text-xs uppercase tracking-tight">加入現有冒險</span>
                     </button>
                </div>
             )}
          </div>
 
-         <div className="space-y-4">
-            {isLoading && !dbError && adventures.length === 0 && <div className="text-center p-4"><Loader2 className="animate-spin mx-auto text-gray-400"/></div>}
+         <div className="grid grid-cols-3 gap-2">
+            {isLoading && !dbError && adventures.length === 0 && <div className="col-span-3 text-center p-4"><Loader2 className="animate-spin mx-auto text-gray-400"/></div>}
             {!isLoading && !dbError && adventures.length === 0 && mode === 'view' && (
-               <div className="text-center text-gray-400 text-sm mt-10">
-                  還沒有任何冒險記錄...
+               <div className="col-span-3 text-center text-gray-400 text-[10px] mt-10 uppercase font-black">
+                  No adventures found...
                </div>
             )}
-            {adventures.map(adv => (
-               <div 
-                 key={adv.id} 
-                 className={`${POKE_CARD_STYLE} w-full p-0 overflow-hidden text-left group transition-transform relative`}
-               >
-                  <button onClick={() => onSelectAdventure(adv.id)} className="w-full text-left active:scale-[0.98] transition-transform">
-                    <div className="h-20 bg-gray-100 relative overflow-hidden border-b-2 border-black">
-                        <img src={adv.coverImage} className="w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-500" alt="cover"/>
-                        <div className="absolute bottom-2 left-4 bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded border border-black text-[10px] font-bold">
-                            {adv.startDate} ~ {getDateStrFromDay(adv.totalDays || 5, adv.startDate)}
-                        </div>
-                    </div>
-                    <div className="p-4 flex justify-between items-center">
-                        <div>
-                            <h4 className="text-lg font-black leading-tight">{adv.title}</h4>
-                            <div className="text-xs text-gray-500 font-bold mt-1">{adv.memberIds.length} 位訓練家</div>
-                        </div>
-                        <ArrowRight size={20} className="text-gray-300 group-hover:text-black transition-colors" />
-                    </div>
-                  </button>
+            {adventures.map(adv => {
+               const endDate = getDateStrFromDay(adv.totalDays || 5, adv.startDate);
+               const dateRange = `${adv.startDate.split('-').slice(1).join('/')}-${endDate.split('-').slice(1).join('/')}`;
 
-                  <div className="absolute top-2 right-2 flex space-x-1">
-                      <button 
-                        onClick={(e) => copyToClipboard(adv.id, e)}
-                        className="bg-white/90 backdrop-blur border border-black rounded px-2 py-1 text-[10px] font-bold flex items-center hover:bg-gray-100 active:scale-95"
-                        title="Copy ID"
-                      >
-                         {copiedId === adv.id ? <Check size={10} className="mr-1 text-green-600"/> : <Copy size={10} className="mr-1"/>}
-                         ID
-                      </button>
-                      <button 
-                        onClick={(e) => handleDelete(adv.id, adv.title, e)}
-                        className="bg-white/90 backdrop-blur border border-black rounded px-2 py-1 text-[10px] font-bold flex items-center text-red-600 hover:bg-red-50 active:scale-95"
-                        title="Delete Adventure"
-                      >
-                         <Trash2 size={10} />
-                      </button>
-                  </div>
-               </div>
-            ))}
+               return (
+                 <div 
+                   key={adv.id} 
+                   className={`${POKE_CARD_STYLE} overflow-hidden group transition-all relative flex flex-col border-b-[2px] hover:-translate-y-0.5 active:scale-[0.98] cursor-pointer`}
+                 >
+                    <div onClick={() => onSelectAdventure(adv.id)} className="flex-1 flex flex-col text-left">
+                      <div className="aspect-square bg-white relative overflow-hidden border-b border-black flex items-center justify-center p-1">
+                          <img 
+                            src={adv.coverImage} 
+                            className="w-full h-full object-contain pixelated group-hover:animate-bounce-short" 
+                            style={{ animationIterationCount: 'infinite', animationDuration: '2s' }}
+                            alt="cover"
+                          />
+                          <div className="absolute top-0.5 left-0.5 bg-black text-white px-1 py-0.5 rounded border border-white text-[6px] font-black shadow-sm uppercase leading-none">
+                             D{adv.totalDays || 5}
+                          </div>
+                      </div>
+                      <div className="p-1.5 bg-gray-50 flex-1 flex flex-col justify-between">
+                          <div className="min-w-0">
+                              <h4 className="text-[9px] font-black leading-tight text-black line-clamp-1 mb-0.5">{adv.title}</h4>
+                              <div className="text-[6px] text-gray-400 font-bold leading-none mb-1 truncate">{dateRange}</div>
+                          </div>
+                          
+                          <div className="flex items-center justify-between mt-0.5 pt-1 border-t border-dashed border-gray-200">
+                              <div className="flex items-center text-[8px] text-gray-400 font-bold">
+                                  <Users size={6} className="mr-0.5 opacity-50"/> {adv.memberIds.length}
+                              </div>
+                              <div className="flex space-x-0.5">
+                                  <button 
+                                    onClick={(e) => copyToClipboard(adv.id, e)}
+                                    className={`bg-yellow-400 text-black border border-black rounded p-0.5 shadow-[1px_1px_0px_#000] active:translate-y-[0.5px] active:shadow-none hover:bg-yellow-300 transition-colors`}
+                                    title="Copy ID"
+                                  >
+                                     {copiedId === adv.id ? <Check size={6} className="text-green-700 font-bold"/> : <Copy size={6}/>}
+                                  </button>
+                                  <button 
+                                    onClick={(e) => handleDelete(adv.id, adv.title, e)}
+                                    className="bg-white border border-black rounded p-0.5 text-red-500 shadow-[1px_1px_0px_#000] active:translate-y-[0.5px] active:shadow-none hover:bg-red-50 transition-colors"
+                                    title="Delete"
+                                  >
+                                     <Trash2 size={6} />
+                                  </button>
+                              </div>
+                          </div>
+                      </div>
+                    </div>
+                 </div>
+               );
+            })}
          </div>
       </div>
       {showProfileModal && <ProfileModal user={user} onClose={() => setShowProfileModal(false)} onSave={handleUpdateProfile} />}
+      
+      <style>{`
+        @keyframes bounce-short {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-2px); }
+        }
+        .animate-bounce-short {
+          animation: bounce-short 2s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   );
 };
@@ -389,7 +408,6 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
   const [currentEvent, setCurrentEvent] = useState<ItineraryEvent | null>(null);
   const [isEditingEvent, setIsEditingEvent] = useState(false);
   const [editingFlightDirection, setEditingFlightDirection] = useState<'outbound' | 'inbound'>('outbound');
-  const [generatingTransportId, setGeneratingTransportId] = useState<string | null>(null);
   const [currentHotel, setCurrentHotel] = useState<Hotel | null>(null);
   const [currentVoucher, setCurrentVoucher] = useState<Voucher | null>(null);
   const [currentMember, setCurrentMember] = useState<Member | null>(null);
@@ -443,20 +461,6 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
     await saveToDb({ tripSettings: settings, totalDays: days }, coverImage);
   };
 
-  const handleSaveProfile = async (updatedUser: User) => {
-    onUpdateUser(updatedUser); 
-    
-    // Update the member record in the current adventure
-    const newMembers = members.map(m => 
-        m.id === updatedUser.id 
-        ? { ...m, name: updatedUser.name, img: updatedUser.avatar }
-        : m
-    );
-    setMembers(newMembers);
-    setShowProfileModal(false);
-    await saveToDb({ members: newMembers });
-  };
-
   const handleUpdateWeatherLocation = async (day: number, cityKey: string) => {
     const newOverrides = { ...weatherOverrides };
     if (!cityKey) {
@@ -504,31 +508,6 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
       const newExpenses = [{ id: generateId(), amount, item, payer, category, date: new Date().toISOString().split('T')[0], createdAt: new Date().toISOString() }, ...expenses];
       setExpenses(newExpenses);
       await saveToDb({ expenses: newExpenses });
-  };
-
-  const handleGenerateTransport = async (startEvent: ItineraryEvent, endEvent: ItineraryEvent) => {
-    if (!startEvent.id || generatingTransportId === startEvent.id) return;
-    setGeneratingTransportId(startEvent.id);
-    const resultText = await generateTransportSuggestion(startEvent.location || startEvent.title, endEvent.location || endEvent.title);
-    const parts = resultText.split('|');
-    if (parts.length >= 2) {
-      const newEvent: ItineraryEvent = {
-        id: generateId(),
-        date: getDateStrFromDay(activeDay, tripSettings.startDate),
-        time: startEvent.time,
-        title: '',
-        location: '',
-        type: 'transport',
-        transportMode: (parts[0].trim().toLowerCase() as any) || 'train',
-        duration: parts[1].trim(),
-        notes: parts[2] || '',
-        createdAt: new Date().toISOString()
-      };
-      const newEvents = [...events, newEvent].sort((a, b) => a.time.localeCompare(b.time));
-      setEvents(newEvents);
-      await saveToDb({ events: newEvents });
-    }
-    setGeneratingTransportId(null);
   };
   
   const handleOpenHotelModal = (hotel?: Hotel) => { setCurrentHotel(hotel || { id: '', name: '', location: '', bookingCode: '', image: '' }); setShowHotelModal(true); };
@@ -605,8 +584,13 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
       await saveToDb({ journalEntries: newEntries });
   };
 
+  const handleUpdateProfile = (u: User) => {
+      onUpdateUser(u);
+      setShowProfileModal(false);
+  };
+
   return (
-    <div className={`min-h-screen ${currentTheme.bgLight} font-['DotGothic16'] text-gray-700 max-w-md mx-auto shadow-2xl relative overflow-x-hidden transition-colors duration-300`}>
+    <div className={`min-h-screen ${currentTheme.bgLight} font-['DotGothic16'] text-gray-700 max-w-md mx-auto shadow-2xl relative flex flex-col transition-colors duration-300`}>
       {loading && (
         <div className="fixed inset-0 z-[200] bg-black/10 flex items-center justify-center backdrop-blur-sm">
           <Loader2 className="animate-spin text-gray-400" size={48} />
@@ -614,13 +598,6 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
       )}
       
       <div className="relative">
-         <button 
-           onClick={onBack} 
-           className="fixed top-4 left-4 z-50 bg-white/90 p-2 rounded-xl border-2 border-black shadow-sm active:scale-90 flex items-center space-x-1 pr-3"
-         >
-           <ArrowRight className="rotate-180" size={16}/>
-           <span className="text-xs font-bold hidden sm:inline">回到大廳</span>
-         </button>
          <Header 
             tripSettings={tripSettings} 
             currentTheme={currentTheme} 
@@ -628,10 +605,11 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
             currentUser={user}
             onOpenSettings={() => setShowSettingsModal(true)} 
             onOpenProfile={() => setShowProfileModal(true)}
+            onBack={onBack}
          />
       </div>
 
-      <main className="mt-4">
+      <div className={`flex-1 overflow-x-hidden ${currentTheme.bgLight} bg-inherit`}>
         {activeTab === 'itinerary' && (
           <ItineraryView 
              activeDay={activeDay} 
@@ -644,8 +622,6 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
              onOpenWeather={() => setShowWeatherModal(true)} 
              onAddEvent={handleOpenAddEvent} 
              onDeleteEvent={handleDeleteEvent} 
-             onGenerateTransport={handleGenerateTransport} 
-             generatingTransportId={generatingTransportId} 
           />
         )}
         {activeTab === 'booking' && (
@@ -660,11 +636,10 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
         {activeTab === 'members' && (
            <MembersView members={members} onMemberClick={handleOpenMemberModal} />
         )}
-      </main>
+      </div>
 
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} currentTheme={currentTheme} />
 
-      {/* Modals Injection */}
       {showWeatherModal && (
         <WeatherModal 
             weather={currentWeather} 
@@ -681,7 +656,7 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
       {showVoucherModal && currentVoucher && <VoucherModal voucher={currentVoucher} currentTheme={currentTheme} onClose={() => setShowVoucherModal(false)} onSave={handleSaveVoucher} onDelete={handleDeleteVoucher} />}
       {showMemberModal && currentMember && <MemberModal member={currentMember} currentTheme={currentTheme} onClose={() => setShowMemberModal(false)} onSave={handleSaveMember} onDelete={handleDeleteMember} />}
       {showJournalModal && <JournalModal members={members} currentTheme={currentTheme} onClose={() => setShowJournalModal(false)} onSave={handleAddJournalEntry} />}
-      {showProfileModal && <ProfileModal user={user} onClose={() => setShowProfileModal(false)} onSave={handleSaveProfile} />}
+      {showProfileModal && <ProfileModal user={user} onClose={() => setShowProfileModal(false)} onSave={handleUpdateProfile} />}
       {viewingQR && <QRModal image={viewingQR.image} title={viewingQR.title} onClose={() => setViewingQR(null)} />}
     </div>
   );
