@@ -128,5 +128,7 @@ export const updateAdventureData = async (adventureId: string, data: any, coverI
         }
     } catch (e) {
         console.error("Error updating adventure:", e);
+        // 增加使用者提示，因為資料庫有單一文件 1MB 限制
+        alert("存檔失敗！可能是檔案或圖片過大導致 (資料庫限制 1MB)。\n\n請嘗試：\n1. 刪除過大的 PDF 憑證\n2. 改用手機截圖上傳 (系統會自動壓縮圖片)");
     }
 };
