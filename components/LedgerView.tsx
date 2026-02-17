@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Calculator, ArrowDown, PieChart, Coffee, Bed, Bus, Shirt, Gift } from 'lucide-react';
+import { Calculator, ArrowDown, PieChart, Coffee, Bed, Bus, Shirt, Gift, MoreHorizontal } from 'lucide-react';
 import { Expense, Theme, Member } from '../types';
 import { POKE_CARD_STYLE, POKE_INPUT_STYLE, POKE_BTN_STYLE, DIGITAL_FONT_STYLE } from '../constants';
 
@@ -17,6 +17,7 @@ const CATEGORIES = [
   { id: 'transport', label: '交通', icon: Bus, color: '#10B981', bg: 'bg-emerald-500' },
   { id: 'wear', label: '穿搭', icon: Shirt, color: '#EC4899', bg: 'bg-pink-500' },
   { id: 'gift', label: '紀念品', icon: Gift, color: '#EF4444', bg: 'bg-red-500' },
+  { id: 'misc', label: '雜支', icon: MoreHorizontal, color: '#A855F7', bg: 'bg-purple-500' },
 ];
 
 export const LedgerView: React.FC<LedgerViewProps> = ({ currentTheme, expenses, members, onAddExpense }) => {
@@ -177,8 +178,8 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ currentTheme, expenses, 
 
           <input type="text" value={item} onChange={(e) => setItem(e.target.value)} placeholder="消費項目 (例如: 拉麵)" className={`w-full p-2 text-xs font-bold text-center ${POKE_INPUT_STYLE}`} />
           
-          {/* Category Selection */}
-          <div className="grid grid-cols-5 gap-2 pt-2">
+          {/* Category Selection - Changed to grid-cols-3 for better fit with 6 items */}
+          <div className="grid grid-cols-3 gap-2 pt-2">
             {CATEGORIES.map(cat => (
               <button 
                 key={cat.id} 
