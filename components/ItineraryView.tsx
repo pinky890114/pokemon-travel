@@ -13,7 +13,7 @@ interface ItineraryViewProps {
   tripSettings: TripSettings;
   events: ItineraryEvent[];
   weatherOverrides?: Record<string, string>;
-  onOpenWeather: () => void;
+  onOpenWeather: (info: WeatherInfo) => void;
   onAddEvent: (event?: ItineraryEvent) => void;
   onDeleteEvent: (id: string, e: React.MouseEvent) => void;
   onGenerateTransport?: (start: ItineraryEvent, end: ItineraryEvent) => void;
@@ -118,7 +118,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
       {/* Weather Summary Card */}
       <div className="px-6">
         <div 
-          onClick={onOpenWeather}
+          onClick={() => onOpenWeather(cityInfo)}
           className={`${POKE_CARD_STYLE} p-4 bg-gradient-to-br from-blue-50 to-white cursor-pointer active:scale-[0.98] transition-all relative overflow-hidden`}
         >
           <div className="flex justify-between items-start mb-4 relative z-10">
@@ -130,11 +130,13 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                        {loadingWeather && <Loader2 size={12} className="ml-2 animate-spin text-blue-400"/>}
                    </div>
                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mt-1">
-                      {cityInfo.condition} <span className="mx-1">|</span> {cityInfo.minTemp}°C ~ {cityInfo.maxTemp}°C
+                      {cityInfo.condition} <span className="mx-1 opacity-50">|</span> {cityInfo.minTemp}°C ~ {cityInfo.maxTemp}°C
                    </div>
                 </div>
              </div>
-             <div className="text-right">
+             
+             {/* Right side: Temp only */}
+             <div className="flex flex-col items-end">
                 <div className={`text-4xl font-black text-gray-800 ${DIGITAL_FONT_STYLE} leading-none`}>{cityInfo.temp}°</div>
              </div>
           </div>

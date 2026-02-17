@@ -15,7 +15,7 @@ import { JournalSection } from './components/JournalSection';
 import { WeatherModal, SettingsModal, EventModal, FlightModal, HotelModal, VoucherModal, QRModal, MemberModal, JournalModal, ProfileModal } from './components/Modals';
 
 import { 
-  TripSettings, ItineraryEvent, FlightData, Expense, FlightSegment, Hotel, Voucher, Member, JournalEntry, User, AdventureMetadata, PackingItem
+  TripSettings, ItineraryEvent, FlightData, Expense, FlightSegment, Hotel, Voucher, Member, JournalEntry, User, AdventureMetadata, PackingItem, WeatherInfo
 } from './types';
 import { POKEMON_THEMES, INITIAL_FLIGHT_DATA, INITIAL_HOTELS, INITIAL_VOUCHERS, INITIAL_MEMBERS, POKE_CARD_STYLE, POKE_INPUT_STYLE, POKE_BTN_STYLE, DEFAULT_PACKING_ITEMS } from './constants';
 import { getDateStrFromDay, calculateLevelFromExp, getCityWeather } from './utils';
@@ -399,6 +399,7 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
 
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showWeatherModal, setShowWeatherModal] = useState(false);
+  const [modalWeather, setModalWeather] = useState<WeatherInfo | null>(null);
   const [showEventModal, setShowEventModal] = useState(false);
   const [showFlightModal, setShowFlightModal] = useState(false);
   const [showHotelModal, setShowHotelModal] = useState(false);
@@ -694,7 +695,10 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
              tripSettings={tripSettings} 
              events={events} 
              weatherOverrides={weatherOverrides}
-             onOpenWeather={() => setShowWeatherModal(true)} 
+             onOpenWeather={(info) => {
+                setModalWeather(info);
+                setShowWeatherModal(true);
+             }} 
              onAddEvent={handleOpenAddEvent} 
              onDeleteEvent={handleDeleteEvent} 
              onGenerateTransport={handleGenerateTransport} 
@@ -733,7 +737,7 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
 
       {showWeatherModal && (
         <WeatherModal 
-            weather={currentWeather} 
+            weather={modalWeather || currentWeather} 
             day={activeDay}
             currentOverride={weatherOverrides[String(activeDay)]}
             onClose={() => setShowWeatherModal(false)} 
