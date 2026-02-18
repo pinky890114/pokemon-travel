@@ -421,6 +421,8 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
   const currentTheme = POKEMON_THEMES[(activeDay - 1) % POKEMON_THEMES.length];
   const currentDayEvents = events.filter(e => e.date === getDateStrFromDay(activeDay, tripSettings.startDate));
   const currentWeather = getCityWeather(activeDay, currentDayEvents, weatherOverrides);
+  // Calculate current date string for passing to weather modal
+  const currentDateStr = getDateStrFromDay(activeDay, tripSettings.startDate);
 
   useEffect(() => {
       setLoading(true);
@@ -740,6 +742,7 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
         <WeatherModal 
             weather={modalWeather || currentWeather} 
             day={activeDay}
+            dateStr={currentDateStr}
             currentOverride={weatherOverrides[String(activeDay)]}
             onClose={() => setShowWeatherModal(false)} 
             onUpdateLocation={handleUpdateWeatherLocation}

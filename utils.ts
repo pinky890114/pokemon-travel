@@ -4,7 +4,7 @@ import { ItineraryEvent, WeatherInfo } from "./types";
 
 // --- AI Service Exports ---
 // 統一從 geminiService 匯入 AI 功能，確保錯誤處理一致
-export { generateTransportSuggestion, translateText } from './services/geminiService';
+export { generateTransportSuggestion, translateText, checkWeatherWithAI } from './services/geminiService';
 
 // --- Existing Utils ---
 
@@ -19,13 +19,16 @@ export const getExpForNextLevel = (currentLevel: number) => {
 };
 
 export const getDateStrFromDay = (dayIndex: number, startDateStr: string) => {
-  if (!startDateStr) return new Date().toISOString().split('T')[0];
-  const startDate = new Date(startDateStr + 'T00:00:00'); 
-  const targetDate = new Date(startDate);
-  targetDate.setDate(startDate.getDate() + (dayIndex - 1));
-  const y = targetDate.getFullYear();
-  const m = String(targetDate.getMonth() + 1).padStart(2, '0');
-  const d = String(targetDate.getDate()).padStart(2, '0');
+  // If startDateStr is missing, default to today's date as the base,
+  // but we must still apply the dayIndex offset.
+  const baseDateStr = startDateStr || new Date().toISOString().split('T')[0];
+  
+  const dateObj = new Date(baseDateStr + 'T00:00:00'); 
+  dateObj.setDate(dateObj.getDate() + (dayIndex - 1));
+  
+  const y = dateObj.getFullYear();
+  const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const d = String(dateObj.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 };
 
@@ -82,7 +85,8 @@ const getWeatherIcon = (code: number): { icon: string; condition: string } => {
 
 export const fetchRealtimeWeather = async (lat: number, lng: number, targetDate: string): Promise<Partial<WeatherInfo> | null> => {
   try {
-    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max&timezone=auto`);
+    // 增加 forecast_days 到 16，確保能抓到未來兩週內的資料
+    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max&timezone=auto&forecast_days=16`);
     const data = await res.json();
     
     if (!data.daily) return null;

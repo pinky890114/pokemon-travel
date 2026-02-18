@@ -36,6 +36,8 @@ export const CITY_WEATHER_DB: Record<string, WeatherInfo> = {
   "VENICE": { name: "VENICE", temp: 13, minTemp: 8, maxTemp: 16, condition: "rain", icon: "🌧️", type: "water", sunrise: "06:55", sunset: "18:00", lat: 45.4408, lng: 12.3155 },
   "FLORENCE": { name: "FLORENCE", temp: 15, minTemp: 9, maxTemp: 19, condition: "sunny", icon: "☀️", type: "city", sunrise: "06:50", sunset: "18:10", lat: 43.7696, lng: 11.2558 },
   "ROME": { name: "ROME", temp: 16, minTemp: 10, maxTemp: 20, condition: "sunny", icon: "☀️", type: "city", sunrise: "06:45", sunset: "18:15", lat: 41.9028, lng: 12.4964 },
+  "PISA": { name: "PISA", temp: 14, minTemp: 8, maxTemp: 18, condition: "sunny", icon: "☀️", type: "city", sunrise: "06:55", sunset: "18:10", lat: 43.7228, lng: 10.4017 },
+  "SIENA": { name: "SIENA", temp: 13, minTemp: 7, maxTemp: 17, condition: "cloudy", icon: "☁️", type: "city", sunrise: "06:52", sunset: "18:08", lat: 43.3188, lng: 11.3308 },
 };
 
 export const CITY_KEYWORDS = [
@@ -49,6 +51,8 @@ export const CITY_KEYWORDS = [
   { key: "VENICE", words: ["venice", "威尼斯"] },
   { key: "FLORENCE", words: ["florence", "佛羅倫斯", "firenze"] },
   { key: "ROME", words: ["rome", "羅馬", "roma"] },
+  { key: "PISA", words: ["pisa", "比薩", "斜塔"] },
+  { key: "SIENA", words: ["siena", "西恩納", "錫耶納", "山城"] },
 ];
 
 export const EEVEE_THEMES: Theme[] = [

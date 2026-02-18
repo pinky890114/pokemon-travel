@@ -211,9 +211,24 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
                               {event.type === 'event' ? (
                                  <div className="space-y-1.5">
                                     <h4 className="font-black text-gray-800 text-lg leading-tight whitespace-pre-wrap">{event.title}</h4>
-                                    <div className="text-[10px] font-bold text-gray-400 flex items-start whitespace-pre-wrap">
-                                       <MapPin size={10} className="mr-1 mt-0.5 flex-shrink-0" /> {event.location}
-                                    </div>
+                                    
+                                    {/* Location Link Change */}
+                                    {event.location ? (
+                                        <a 
+                                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="text-[10px] font-bold text-gray-400 flex items-start whitespace-pre-wrap hover:text-blue-500 hover:underline transition-colors w-fit relative z-20"
+                                        >
+                                           <MapPin size={10} className="mr-1 mt-0.5 flex-shrink-0" /> {event.location}
+                                        </a>
+                                    ) : (
+                                        <div className="text-[10px] font-bold text-gray-400 flex items-start whitespace-pre-wrap opacity-50">
+                                           <MapPin size={10} className="mr-1 mt-0.5 flex-shrink-0" />
+                                        </div>
+                                    )}
+
                                     {event.notes && (
                                         <div className="mt-2 pt-2 border-t border-dashed border-gray-100 flex items-start gap-1.5">
                                             <StickyNote size={10} className="mt-0.5 text-gray-300 flex-shrink-0" />

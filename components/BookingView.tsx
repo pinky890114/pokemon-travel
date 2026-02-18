@@ -168,7 +168,7 @@ export const BookingView: React.FC<BookingViewProps> = ({
             </button>
           </div>
           {hotels.map((h, i) => (
-             <button key={h.id} onClick={() => onOpenHotelModal && onOpenHotelModal(h)} className={`${POKE_CARD_STYLE} flex overflow-hidden w-full text-left active:scale-[0.98] transition-transform h-32`}>
+             <div key={h.id} onClick={() => onOpenHotelModal && onOpenHotelModal(h)} role="button" tabIndex={0} className={`${POKE_CARD_STYLE} flex overflow-hidden w-full text-left active:scale-[0.98] transition-transform h-32 cursor-pointer`}>
                 <div className="w-28 bg-gray-200 border-r-2 border-black flex-shrink-0 relative overflow-hidden">
                     {h.image ? (
                         <img src={h.image} className="w-full h-full object-cover" alt={h.name} />
@@ -206,7 +206,7 @@ export const BookingView: React.FC<BookingViewProps> = ({
                          target="_blank" 
                          rel="noopener noreferrer"
                          onClick={(e) => e.stopPropagation()}
-                         className="text-[10px] font-bold text-gray-500 flex items-center tracking-tighter uppercase truncate mt-0.5"
+                         className="text-[10px] font-bold text-gray-500 flex items-center tracking-tighter uppercase truncate mt-0.5 hover:text-blue-500 hover:underline transition-colors w-fit"
                        >
                          <MapPin size={10} className="mr-1 flex-shrink-0"/>{h.location}
                        </a>
@@ -231,7 +231,7 @@ export const BookingView: React.FC<BookingViewProps> = ({
                       </div>
                    )}
                 </div>
-             </button>
+             </div>
           ))}
           {hotels.length === 0 && (
             <div className={`${POKE_CARD_STYLE} p-8 text-center bg-gray-50 text-gray-400 font-bold`}>
@@ -249,7 +249,7 @@ export const BookingView: React.FC<BookingViewProps> = ({
             </button>
           </div>
           {vouchers.map(v => (
-             <button key={v.id} onClick={() => onOpenVoucherModal && onOpenVoucherModal(v)} className={`${POKE_CARD_STYLE} flex overflow-hidden w-full text-left active:scale-[0.98] transition-transform`}>
+             <div key={v.id} onClick={() => onOpenVoucherModal && onOpenVoucherModal(v)} role="button" tabIndex={0} className={`${POKE_CARD_STYLE} flex overflow-hidden w-full text-left active:scale-[0.98] transition-transform cursor-pointer`}>
                 <div className="w-8 bg-gray-100 border-r-2 border-black border-dashed flex flex-col items-center justify-center p-1 relative">
                    <div className="absolute inset-y-2 left-1/2 -translate-x-1/2 w-1 border-x-2 border-dashed border-gray-300"></div>
                 </div>
@@ -266,17 +266,17 @@ export const BookingView: React.FC<BookingViewProps> = ({
                          </span>
                          <h4 className="font-black text-gray-800 text-lg leading-none">{v.title}</h4>
                       </div>
-                      <button 
+                      <div 
                          onClick={(e) => {
                            if (v.qrImage) {
                              e.stopPropagation();
                              onShowQR && onShowQR(v.qrImage, v.title);
                            }
                          }}
-                         className={`p-1 rounded-lg border-2 transition-all ${v.qrImage ? 'border-black bg-white hover:bg-gray-100 text-black shadow-[2px_2px_0px_#000] active:shadow-none active:translate-y-[1px]' : 'border-transparent text-gray-300 cursor-default'}`}
+                         className={`p-1 rounded-lg border-2 transition-all ${v.qrImage ? 'border-black bg-white hover:bg-gray-100 text-black shadow-[2px_2px_0px_#000] active:shadow-none active:translate-y-[1px] cursor-pointer' : 'border-transparent text-gray-300 cursor-default'}`}
                       >
                          <QrCode size={28} />
-                      </button>
+                      </div>
                    </div>
                    <div className="bg-gray-50 border-2 border-gray-200 rounded p-2 mb-2 font-mono">
                       <div className="text-[9px] text-gray-400 font-bold">REFERENCE NO.</div>
@@ -295,7 +295,7 @@ export const BookingView: React.FC<BookingViewProps> = ({
                       </div>
                    )}
                 </div>
-             </button>
+             </div>
           ))}
           {vouchers.length === 0 && (
              <div className={`${POKE_CARD_STYLE} p-8 text-center bg-gray-50 text-gray-400 font-bold`}>

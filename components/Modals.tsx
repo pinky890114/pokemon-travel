@@ -1,51 +1,66 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Sun, Plus, Minus, Trash2, Upload, Ticket, QrCode, Check, Camera, Copy, Key, User as UserIcon, RefreshCw, MapPin, FileText, Image as ImageIcon, Droplets, Moon, Loader2 } from 'lucide-react';
+import { X, Sun, Plus, Minus, Trash2, Upload, Ticket, QrCode, Check, Camera, Copy, Key, User as UserIcon, RefreshCw, MapPin, FileText, Image as ImageIcon, Droplets, Moon, Loader2, Info, Search, Sparkles } from 'lucide-react';
 import { POKE_CARD_STYLE, POKE_INPUT_STYLE, POKE_BTN_STYLE, DIGITAL_FONT_STYLE, POKEMON_THEMES, CITY_WEATHER_DB } from '../constants';
 import { TripSettings, ItineraryEvent, FlightSegment, Theme, Hotel, Voucher, Member, JournalEntry, WeatherInfo, User } from '../types';
-import { getPokemonSprite, compressImage, fetchRealtimeWeather, getDateStrFromDay } from '../utils';
+import { getPokemonSprite, compressImage, fetchRealtimeWeather, getDateStrFromDay, checkWeatherWithAI } from '../utils';
 
 // --- Weather Modal ---
 interface WeatherModalProps {
   weather: WeatherInfo;
   day: number;
+  dateStr: string; // New prop for specific date
   currentOverride: string | undefined;
   onClose: () => void;
   onUpdateLocation: (day: number, cityKey: string) => void;
 }
 
-export const WeatherModal: React.FC<WeatherModalProps> = ({ weather: initialWeather, day, currentOverride, onClose, onUpdateLocation }) => {
+export const WeatherModal: React.FC<WeatherModalProps> = ({ weather: initialWeather, day, dateStr, currentOverride, onClose, onUpdateLocation }) => {
   const [weather, setWeather] = useState<WeatherInfo>(initialWeather);
   const [loading, setLoading] = useState(false);
+  
+  // AI Verification State
+  const [aiCheckResult, setAiCheckResult] = useState<string | null>(null);
+  const [aiCheckLoading, setAiCheckLoading] = useState(false);
 
   // 當初始 weather 或 override 改變時，重新 fetch 該地點的天氣
   useEffect(() => {
-    // 如果傳入的 initialWeather 已經是 override 後的靜態資料，我們需要 fetch 它的即時資料
-    // 但我們不知道 initialWeather 是否已經包含了 realtime data。
-    // 為了保險，我們針對當前的 location 再次 fetch，確保 modal 內的每小時預報是準確的。
-    const fetchWeather = async () => {
-        if (initialWeather.lat && initialWeather.lng) {
+    // 只有當「地點被手動切換」時，或者「初始資料缺少降雨機率(代表是靜態資料)」時，才重新抓取
+    const shouldFetch = (currentOverride && currentOverride !== weather.name) || (weather.rainProb === undefined);
+
+    if (shouldFetch && initialWeather.lat && initialWeather.lng) {
+        const fetchWeather = async () => {
             setLoading(true);
-            // 這裡我們暫時用今天的日期來 fetch，因為我們沒有 tripSettings.startDate
-            // 但如果 App 層傳入的 weather 已經是正確的 static info，我們就用它的 lat/lng
-            // 為了簡化，這裡假設 date 是從 external 傳入的 weather 中無法直接得知的，但我們可以用 new Date() 或是從父層傳入 date string
-            // 這裡我們簡單 fetch current weather。若需精確日期預報，需從 props 傳入 dateStr。
-            // 由於 WeatherModal 的 props 限制，我們嘗試直接 fetch
-            const todayStr = new Date().toISOString().split('T')[0]; 
-            // 注意：這裡如果能從父層取得正確的日期字串會更好，目前先做簡單 fetch
-            const realtime = await fetchRealtimeWeather(initialWeather.lat, initialWeather.lng, todayStr);
+            setAiCheckResult(null); // Reset AI result on location change
+            // 使用 props 傳入的 dateStr，若無則 fallback 到今天
+            const targetDate = dateStr || new Date().toISOString().split('T')[0]; 
+            
+            const realtime = await fetchRealtimeWeather(initialWeather.lat!, initialWeather.lng!, targetDate);
             if (realtime) {
                 setWeather({ ...initialWeather, ...realtime });
             } else {
                 setWeather(initialWeather);
             }
             setLoading(false);
-        } else {
-            setWeather(initialWeather);
-        }
-    };
-    fetchWeather();
-  }, [initialWeather.name, initialWeather.lat, initialWeather.lng]); // 當地點改變時
+        };
+        fetchWeather();
+    } else {
+        setWeather(initialWeather);
+    }
+  }, [initialWeather, dateStr, currentOverride]);
+
+  const handleAiCheck = async () => {
+      setAiCheckLoading(true);
+      setAiCheckResult(null);
+      try {
+          const result = await checkWeatherWithAI(weather.name, dateStr);
+          setAiCheckResult(result);
+      } catch (e) {
+          setAiCheckResult("查詢失敗，請稍後再試。");
+      } finally {
+          setAiCheckLoading(false);
+      }
+  };
 
   // 根據小時、溫度、以及降雨機率動態決定圖示
   const getSimulatedIcon = (hour: number, temp: number, rainProb: number) => {
@@ -71,13 +86,16 @@ export const WeatherModal: React.FC<WeatherModalProps> = ({ weather: initialWeat
 
   return (
     <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-6 backdrop-blur-sm animate-in fade-in">
-      <div className={`${POKE_CARD_STYLE} w-full max-w-sm h-[75vh] flex flex-col overflow-hidden relative`}>
+      <div className={`${POKE_CARD_STYLE} w-full max-w-sm h-[80vh] flex flex-col overflow-hidden relative`}>
         <div className="flex justify-between items-center p-4 border-b-[3px] border-black bg-gray-50 font-black">
           <div>
             <h3 className="text-xl leading-none flex items-center">
                 氣候預報分析 {loading && <Loader2 size={16} className="ml-2 animate-spin text-blue-500"/>}
             </h3>
-            <span className="text-xs text-gray-500 font-bold uppercase tracking-tight">DAY {day} - {weather.name}</span>
+            <div className="flex flex-col">
+                <span className="text-xs text-gray-500 font-bold uppercase tracking-tight mt-1">DAY {day} - {weather.name}</span>
+                <span className="text-[10px] text-blue-600 font-bold font-mono tracking-wider">{dateStr}</span>
+            </div>
           </div>
           <button onClick={onClose} className="p-1 hover:bg-gray-200 rounded-full transition-colors"><X size={18} /></button>
         </div>
@@ -85,7 +103,7 @@ export const WeatherModal: React.FC<WeatherModalProps> = ({ weather: initialWeat
         <div className="bg-blue-50 p-2.5 border-b-2 border-dashed border-blue-200 flex items-center justify-between">
           <div className="flex items-center text-[10px] font-black text-blue-700">
             <MapPin size={12} className="mr-1"/>
-            <span>{currentOverride ? "手動定位模式" : "自動地區偵測"}</span>
+            <span>{currentOverride ? "手動定位" : "自動地區偵測"}</span>
           </div>
           <select 
             value={currentOverride || ""}
@@ -99,7 +117,35 @@ export const WeatherModal: React.FC<WeatherModalProps> = ({ weather: initialWeat
           </select>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 bg-white">
+        <div className="flex-1 overflow-y-auto p-4 bg-white relative">
+          
+          {/* AI Check Button Area */}
+          <div className="mb-4">
+             {!aiCheckResult && !aiCheckLoading && (
+                 <button 
+                    onClick={handleAiCheck}
+                    className="w-full py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl font-black text-xs border-2 border-black shadow-[2px_2px_0px_#000] active:translate-y-[1px] active:shadow-none flex items-center justify-center transition-all"
+                 >
+                    <Sparkles size={14} className="mr-2 text-yellow-300 animate-pulse"/>
+                    數據不準？用 Google 搜尋驗證
+                 </button>
+             )}
+             
+             {aiCheckLoading && (
+                 <div className="w-full py-3 bg-gray-50 border-2 border-dashed border-indigo-200 rounded-xl flex items-center justify-center text-xs font-bold text-indigo-400">
+                     <Loader2 size={16} className="animate-spin mr-2" /> AI 正在查詢 Google 最新氣象...
+                 </div>
+             )}
+
+             {aiCheckResult && (
+                 <div className="w-full p-3 bg-indigo-50 border-2 border-indigo-500 rounded-xl relative animate-in fade-in zoom-in-95">
+                     <div className="absolute -top-2 left-3 bg-indigo-600 text-white text-[9px] px-2 py-0.5 rounded font-black uppercase">Google Search Result</div>
+                     <p className="text-xs font-bold text-indigo-900 mt-2 whitespace-pre-wrap leading-relaxed">{aiCheckResult}</p>
+                     <button onClick={() => setAiCheckResult(null)} className="absolute top-2 right-2 text-indigo-300 hover:text-indigo-600"><X size={12}/></button>
+                 </div>
+             )}
+          </div>
+
           <div className="space-y-1">
             {[...Array(24)].map((_, i) => {
               const hour = i;
@@ -145,15 +191,18 @@ export const WeatherModal: React.FC<WeatherModalProps> = ({ weather: initialWeat
           </div>
         </div>
         
-        <div className="p-3 border-t-2 border-black bg-gray-50 text-center">
+        <div className="p-2 border-t-2 border-black bg-gray-50 text-center flex flex-col items-center justify-center">
           <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">數據僅供冒險參考 • 祝您旅途愉快</p>
+          <div className="text-[8px] font-bold text-gray-300 flex items-center mt-1">
+             <Info size={8} className="mr-1"/> Data Source: Open-Meteo API
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-// ... (Rest of the modals remain unchanged)
+// ... (Rest of the file remains unchanged)
 interface ProfileModalProps {
   user: User;
   onClose: () => void;
@@ -224,7 +273,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSav
   );
 };
 
-// ... (Rest of modals: SettingsModal, EventModal, FlightModal, HotelModal, VoucherModal, QRModal, MemberModal, JournalModal)
+interface SettingsModalProps {
+  settings: TripSettings;
+  totalDays: number;
+  adventureId: string;
+  currentCoverImage: string;
+  onClose: () => void;
+  onSave: (settings: TripSettings, totalDays: number, coverImage: string) => void;
+}
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, totalDays, adventureId, currentCoverImage, onClose, onSave }) => {
   const [localSettings, setLocalSettings] = React.useState(settings);
@@ -352,15 +408,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, totalDay
     </div>
   );
 };
-
-interface SettingsModalProps {
-  settings: TripSettings;
-  totalDays: number;
-  adventureId?: string;
-  currentCoverImage?: string; 
-  onClose: () => void;
-  onSave: (settings: TripSettings, days: number, coverImage?: string) => void;
-}
 
 export const EventModal: React.FC<{ event: ItineraryEvent; isEditing: boolean; currentTheme: Theme; onClose: () => void; onSave: (event: ItineraryEvent) => void }> = ({ event, isEditing, currentTheme, onClose, onSave }) => {
   const [localEvent, setLocalEvent] = React.useState(event);

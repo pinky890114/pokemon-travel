@@ -68,3 +68,45 @@ export const translateText = async (text: string, mode: 'to_zh' | 'to_de' | 'to_
     return `[系統] 翻譯失敗: ${msg}`;
   }
 };
+
+export const checkWeatherWithAI = async (location: string, date: string): Promise<string> => {
+  if (!ai) {
+      return "⚠️ 尚未設定 API Key，無法啟用 AI 驗證功能。";
+  }
+
+  const prompt = `請幫我查詢「${location}」在「${date}」的天氣預報。
+  請簡短回答當天的「最高溫」、「最低溫」以及「天氣狀況」(例如晴天、雨天)。
+  
+  回答格式範例：
+  氣溫：1°C ~ 6°C
+  狀況：多雲時陰，午後有短暫陣雨。
+  
+  (請使用繁體中文回答)`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview', // Using flash preview which supports googleSearch
+      contents: prompt,
+      config: {
+        tools: [{googleSearch: {}}], // Enable Google Search Grounding
+      },
+    });
+    
+    let text = response.text || "無法取得 AI 回覆";
+    
+    // Append source links if available
+    const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+    if (chunks && chunks.length > 0) {
+        // Simple extraction of the first source for brevity
+        const firstSource = chunks.find((c: any) => c.web?.uri)?.web;
+        if (firstSource) {
+            text += `\n\n(資料來源: ${firstSource.title || 'Google Search'})`;
+        }
+    }
+    
+    return text;
+  } catch (error: any) {
+    console.error("Weather AI Error:", error);
+    return "AI 查詢失敗，請稍後再試。";
+  }
+};
