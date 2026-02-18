@@ -17,7 +17,7 @@ import { WeatherModal, SettingsModal, EventModal, FlightModal, HotelModal, Vouch
 import { 
   TripSettings, ItineraryEvent, FlightData, Expense, FlightSegment, Hotel, Voucher, Member, JournalEntry, User, AdventureMetadata, PackingItem, WeatherInfo
 } from './types';
-import { POKEMON_THEMES, INITIAL_FLIGHT_DATA, INITIAL_HOTELS, INITIAL_VOUCHERS, INITIAL_MEMBERS, POKE_CARD_STYLE, POKE_INPUT_STYLE, POKE_BTN_STYLE, DEFAULT_PACKING_ITEMS } from './constants';
+import { POKEMON_THEMES, INITIAL_FLIGHT_DATA, INITIAL_HOTELS, INITIAL_VOUCHERS, INITIAL_MEMBERS, POKE_CARD_STYLE, POKE_INPUT_STYLE, POKE_BTN_STYLE, DEFAULT_PACKING_ITEMS, CITY_WEATHER_DB } from './constants';
 import { getDateStrFromDay, calculateLevelFromExp, getCityWeather } from './utils';
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -490,6 +490,7 @@ const AdventureBoard: React.FC<AdventureBoardProps> = ({ user, adventureId, onBa
           newOverrides[String(day)] = cityKey;
       }
       setWeatherOverrides(newOverrides);
+      setModalWeather(null); // Clear modalWeather so it falls back to the newly calculated currentWeather
       await saveToDb({ weatherOverrides: newOverrides });
   };
 

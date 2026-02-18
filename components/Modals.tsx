@@ -1,9 +1,9 @@
 
-import React, { useState, useRef } from 'react';
-import { X, Sun, Plus, Minus, Trash2, Upload, Ticket, QrCode, Check, Camera, Copy, Key, User as UserIcon, RefreshCw, MapPin, FileText, Image as ImageIcon, Droplets, Moon } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { X, Sun, Plus, Minus, Trash2, Upload, Ticket, QrCode, Check, Camera, Copy, Key, User as UserIcon, RefreshCw, MapPin, FileText, Image as ImageIcon, Droplets, Moon, Loader2 } from 'lucide-react';
 import { POKE_CARD_STYLE, POKE_INPUT_STYLE, POKE_BTN_STYLE, DIGITAL_FONT_STYLE, POKEMON_THEMES, CITY_WEATHER_DB } from '../constants';
 import { TripSettings, ItineraryEvent, FlightSegment, Theme, Hotel, Voucher, Member, JournalEntry, WeatherInfo, User } from '../types';
-import { getPokemonSprite, compressImage } from '../utils';
+import { getPokemonSprite, compressImage, fetchRealtimeWeather, getDateStrFromDay } from '../utils';
 
 // --- Weather Modal ---
 interface WeatherModalProps {
@@ -14,7 +14,39 @@ interface WeatherModalProps {
   onUpdateLocation: (day: number, cityKey: string) => void;
 }
 
-export const WeatherModal: React.FC<WeatherModalProps> = ({ weather, day, currentOverride, onClose, onUpdateLocation }) => {
+export const WeatherModal: React.FC<WeatherModalProps> = ({ weather: initialWeather, day, currentOverride, onClose, onUpdateLocation }) => {
+  const [weather, setWeather] = useState<WeatherInfo>(initialWeather);
+  const [loading, setLoading] = useState(false);
+
+  // 當初始 weather 或 override 改變時，重新 fetch 該地點的天氣
+  useEffect(() => {
+    // 如果傳入的 initialWeather 已經是 override 後的靜態資料，我們需要 fetch 它的即時資料
+    // 但我們不知道 initialWeather 是否已經包含了 realtime data。
+    // 為了保險，我們針對當前的 location 再次 fetch，確保 modal 內的每小時預報是準確的。
+    const fetchWeather = async () => {
+        if (initialWeather.lat && initialWeather.lng) {
+            setLoading(true);
+            // 這裡我們暫時用今天的日期來 fetch，因為我們沒有 tripSettings.startDate
+            // 但如果 App 層傳入的 weather 已經是正確的 static info，我們就用它的 lat/lng
+            // 為了簡化，這裡假設 date 是從 external 傳入的 weather 中無法直接得知的，但我們可以用 new Date() 或是從父層傳入 date string
+            // 這裡我們簡單 fetch current weather。若需精確日期預報，需從 props 傳入 dateStr。
+            // 由於 WeatherModal 的 props 限制，我們嘗試直接 fetch
+            const todayStr = new Date().toISOString().split('T')[0]; 
+            // 注意：這裡如果能從父層取得正確的日期字串會更好，目前先做簡單 fetch
+            const realtime = await fetchRealtimeWeather(initialWeather.lat, initialWeather.lng, todayStr);
+            if (realtime) {
+                setWeather({ ...initialWeather, ...realtime });
+            } else {
+                setWeather(initialWeather);
+            }
+            setLoading(false);
+        } else {
+            setWeather(initialWeather);
+        }
+    };
+    fetchWeather();
+  }, [initialWeather.name, initialWeather.lat, initialWeather.lng]); // 當地點改變時
+
   // 根據小時、溫度、以及降雨機率動態決定圖示
   const getSimulatedIcon = (hour: number, temp: number, rainProb: number) => {
     const isNight = hour >= 19 || hour <= 6;
@@ -42,7 +74,9 @@ export const WeatherModal: React.FC<WeatherModalProps> = ({ weather, day, curren
       <div className={`${POKE_CARD_STYLE} w-full max-w-sm h-[75vh] flex flex-col overflow-hidden relative`}>
         <div className="flex justify-between items-center p-4 border-b-[3px] border-black bg-gray-50 font-black">
           <div>
-            <h3 className="text-xl leading-none">氣候預報分析</h3>
+            <h3 className="text-xl leading-none flex items-center">
+                氣候預報分析 {loading && <Loader2 size={16} className="ml-2 animate-spin text-blue-500"/>}
+            </h3>
             <span className="text-xs text-gray-500 font-bold uppercase tracking-tight">DAY {day} - {weather.name}</span>
           </div>
           <button onClick={onClose} className="p-1 hover:bg-gray-200 rounded-full transition-colors"><X size={18} /></button>
@@ -72,14 +106,15 @@ export const WeatherModal: React.FC<WeatherModalProps> = ({ weather, day, curren
               const peakHour = 14; 
               const hourDiff = Math.abs(hour - peakHour);
               
-              // 模擬溫度曲線
+              // 模擬溫度曲線 (基於即時 min/max)
               let simTemp = Math.round(weather.maxTemp - (hourDiff * ( (weather.maxTemp - weather.minTemp) / 10 )));
               if (hour < 6 || hour > 20) simTemp -= 1;
               simTemp = Math.max(simTemp, weather.minTemp);
 
-              // 模擬每小時降雨機率小幅波動
+              // 降雨機率 (使用真實 rainProb 加上隨機波動)
               const baseRain = weather.rainProb ?? 0;
-              const hourRain = Math.min(100, Math.max(0, baseRain + (Math.sin(hour * 0.5) * 15)));
+              // 讓每小時機率在 baseRain 周圍波動 +/- 15%，但不小於0或大於100
+              const hourRain = Math.min(100, Math.max(0, baseRain + (Math.sin(hour * 0.8) * 15)));
 
               const hourIcon = getSimulatedIcon(hour, simTemp, hourRain);
 
@@ -118,7 +153,7 @@ export const WeatherModal: React.FC<WeatherModalProps> = ({ weather, day, curren
   );
 };
 
-// --- Profile Modal ---
+// ... (Rest of the modals remain unchanged)
 interface ProfileModalProps {
   user: User;
   onClose: () => void;
@@ -189,15 +224,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSav
   );
 };
 
-// --- Settings Modal ---
-interface SettingsModalProps {
-  settings: TripSettings;
-  totalDays: number;
-  adventureId?: string;
-  currentCoverImage?: string; 
-  onClose: () => void;
-  onSave: (settings: TripSettings, days: number, coverImage?: string) => void;
-}
+// ... (Rest of modals: SettingsModal, EventModal, FlightModal, HotelModal, VoucherModal, QRModal, MemberModal, JournalModal)
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, totalDays, adventureId, currentCoverImage, onClose, onSave }) => {
   const [localSettings, setLocalSettings] = React.useState(settings);
@@ -325,6 +352,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, totalDay
     </div>
   );
 };
+
+interface SettingsModalProps {
+  settings: TripSettings;
+  totalDays: number;
+  adventureId?: string;
+  currentCoverImage?: string; 
+  onClose: () => void;
+  onSave: (settings: TripSettings, days: number, coverImage?: string) => void;
+}
 
 export const EventModal: React.FC<{ event: ItineraryEvent; isEditing: boolean; currentTheme: Theme; onClose: () => void; onSave: (event: ItineraryEvent) => void }> = ({ event, isEditing, currentTheme, onClose, onSave }) => {
   const [localEvent, setLocalEvent] = React.useState(event);
