@@ -558,12 +558,6 @@ export const HotelModal: React.FC<{ hotel: Hotel; currentTheme: Theme; onClose: 
       const file = e.target.files?.[0];
       if (file) {
         if (file.type === 'application/pdf') {
-            // 新增 PDF 大小檢查 (限制約 350KB)
-            if (file.size > 350 * 1024) {
-                alert("PDF 檔案過大 (超過 350KB)。\n\n由於資料庫限制，建議您：\n1. 使用手機截圖憑證畫面 (圖片可自動壓縮)\n2. 或使用線上工具壓縮 PDF");
-                e.target.value = ''; // Reset input
-                return;
-            }
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = () => {
@@ -667,7 +661,6 @@ export const HotelModal: React.FC<{ hotel: Hotel; currentTheme: Theme; onClose: 
                        )}
                    </div>
                    <input type="file" ref={bookingFileInputRef} onChange={handleBookingFileUpload} className="hidden" accept="image/*,application/pdf" />
-                   <p className="text-[9px] text-gray-400 mt-1 text-center">PDF 限制 350KB 以下 (建議截圖上傳)</p>
                </div>
 
                <textarea value={localHotel.notes} onChange={e => setLocalHotel({...localHotel, notes: e.target.value})} placeholder="Notes..." className={`w-full p-2 h-16 resize-none ${POKE_INPUT_STYLE}`} />
